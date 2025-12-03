@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import clipboardManager from '../../clipboardManager.js'
 import windowManager from '../../windowManager.js'
-import appleScriptHelper from '../../utils/appleScriptHelper.js'
+import { WindowManager } from '../../core/native/index.js'
 
 /**
  * 剪贴板历史管理API - 主程序和插件共享
@@ -83,7 +83,7 @@ export class ClipboardAPI {
       }
       try {
         const result = await clipboardManager.writeToClipboard(id)
-        appleScriptHelper.paste()
+        WindowManager.simulatePaste()
         return { success: result }
       } catch (error) {
         console.error('写回剪贴板失败:', error)

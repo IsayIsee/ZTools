@@ -30,7 +30,8 @@ class WindowManager {
   public createWindow(): BrowserWindow {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
-    this.mainWindow = new BrowserWindow({
+    // 根据平台设置不同的窗口配置
+    const windowConfig: Electron.BrowserWindowConstructorOptions = {
       // type: 'panel',
       title: 'zTools',
       width: 800,
@@ -41,10 +42,7 @@ class WindowManager {
       frame: false, // 无边框
       resizable: true,
       skipTaskbar: true,
-      transparent: true,
       show: false,
-      // backgroundColor: '#ffffff', // 白色背景
-      vibrancy: 'fullscreen-ui',
       webPreferences: {
         preload: path.join(__dirname, '../preload/index.js'),
         backgroundThrottling: false, // 窗口最小化时是否继续动画和定时器
@@ -53,7 +51,20 @@ class WindowManager {
         spellcheck: false, // 禁用拼写检查
         webSecurity: false
       }
-    })
+    }
+
+    // Windows 系统配置
+    if (platform.isWindows) {
+      windowConfig.backgroundColor = '#ffffff'
+      windowConfig.transparent = false
+    }
+    // macOS 系统配置
+    else if (platform.isMacOS) {
+      windowConfig.transparent = true
+      windowConfig.vibrancy = 'fullscreen-ui'
+    }
+
+    this.mainWindow = new BrowserWindow(windowConfig)
 
     // 加载页面
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
