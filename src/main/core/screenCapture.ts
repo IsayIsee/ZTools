@@ -1,24 +1,21 @@
 import { clipboard, Notification } from 'electron'
-import { exec } from 'child_process'
+import { execFile, exec } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import winScreenCapturePath from '../../../resources/lib/win/ScreenCapture.exe?asset'
+
+console.log('winScreenCapturePath', winScreenCapturePath)
 
 // 截图方法windows
 export const screenWindow = (cb: (image: string) => void): void => {
-  // const url = path.resolve(__static, 'ScreenCapture.exe');
-  // const screen_window = execFile(url);
-  // screen_window.on('exit', (code) => {
-  //   if (code) {
-  //     const image = clipboard.readImage();
-  //     cb && cb(image.isEmpty() ? '' : image.toDataURL());
-  //   }
-  // });
-  new Notification({
-    title: '暂不支持',
-    body: 'Windows 系统截图暂不支持，我们将会尽快更新！'
-  }).show()
-  cb('')
+  const screen_window = execFile(winScreenCapturePath)
+  screen_window.on('exit', (code) => {
+    if (code) {
+      const image = clipboard.readImage()
+      cb && cb(image.isEmpty() ? '' : image.toDataURL())
+    }
+  });
 }
 
 // 截图方法mac
