@@ -147,6 +147,18 @@ declare global {
       onUpdateSubInputPlaceholder?: (
         callback: (data: { pluginPath: string; placeholder: string }) => void
       ) => void
+      // 软件更新
+      updater: {
+        checkUpdate: () => Promise<{
+          hasUpdate: boolean
+          currentVersion?: string
+          latestVersion?: string
+          updateInfo?: any
+          error?: string
+        }>
+        startUpdate: (updateInfo: any) => Promise<{ success: boolean; error?: string }>
+      }
+      getAppVersion: () => Promise<string>
     }
   }
 }

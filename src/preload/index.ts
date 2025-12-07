@@ -136,7 +136,14 @@ contextBridge.exposeInMainWorld('ztools', {
   getPluginDocKeys: (pluginName: string) => ipcRenderer.invoke('get-plugin-doc-keys', pluginName),
   getPluginDoc: (pluginName: string, key: string) =>
     ipcRenderer.invoke('get-plugin-doc', pluginName, key),
-  clearPluginData: (pluginName: string) => ipcRenderer.invoke('clear-plugin-data', pluginName)
+  clearPluginData: (pluginName: string) => ipcRenderer.invoke('clear-plugin-data', pluginName),
+  // 软件更新
+  updater: {
+    checkUpdate: () => ipcRenderer.invoke('updater:check-update'),
+    startUpdate: (updateInfo: any) => ipcRenderer.invoke('updater:start-update', updateInfo)
+  },
+  // 获取应用版本
+  getAppVersion: () => ipcRenderer.invoke('get-app-version')
 })
 
 // TypeScript 类型定义

@@ -38,6 +38,9 @@ export class SystemAPI {
     // UI
     ipcMain.handle('show-context-menu', (_event, menuItems) => this.showContextMenu(menuItems))
     ipcMain.handle('select-avatar', () => this.selectAvatar())
+
+    // App Info
+    ipcMain.handle('get-app-version', () => app.getVersion())
   }
 
   private async openExternal(url: string): Promise<void> {

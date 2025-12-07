@@ -1,0 +1,5 @@
+{
+    "downloadUrl": "https://ilt.lanzouu.com/irVc93d0c4mf",
+    "version": "1.0.6",
+    "releaseNotes": "新版本测试"
+}

@@ -175,6 +175,18 @@
         </label>
       </div>
     </div>
+    <!-- 软件更新 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <span>软件更新</span>
+        <span class="setting-desc">当前版本: {{ appVersion }}</span>
+      </div>
+      <div class="setting-control">
+        <button class="select-btn" :disabled="isCheckingUpdate" @click="handleCheckUpdate">
+          {{ isCheckingUpdate ? '检查中...' : '检查更新' }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -197,6 +209,10 @@ const showTrayIcon = ref(true)
 
 // 开机启动设置
 const launchAtLogin = ref(false)
+
+// 软件版本
+const appVersion = ref('')
+const isCheckingUpdate = ref(false)
 
 // 主题色选项
 const themeColors = [
@@ -453,6 +469,47 @@ async function handleLaunchAtLoginChange(): Promise<void> {
   }
 }
 
+// 获取应用版本
+async function getAppVersion(): Promise<void> {
+  try {
+    appVersion.value = await window.ztools.getAppVersion()
+  } catch (error) {
+    console.error('获取版本失败:', error)
+    appVersion.value = '未知'
+  }
+}
+
+// 检查更新
+async function handleCheckUpdate(): Promise<void> {
+  if (isCheckingUpdate.value) return
+  isCheckingUpdate.value = true
+
+  try {
+    const result = await window.ztools.updater.checkUpdate()
+    if (result.hasUpdate) {
+      if (
+        confirm(
+          `发现新版本 ${result.latestVersion}，是否立即更新？\n\n` +
+            `更新内容：\n${result.updateInfo.releaseNotes || '无'}`
+        )
+      ) {
+        await window.ztools.updater.startUpdate(result.updateInfo)
+      }
+    } else {
+      if (result.error) {
+        alert('检查更新出错: ' + result.error)
+      } else {
+        alert('当前已是最新版本')
+      }
+    }
+  } catch (error: any) {
+    console.error('检查更新失败:', error)
+    alert('检查更新失败: ' + (error.message || '未知错误'))
+  } finally {
+    isCheckingUpdate.value = false
+  }
+}
+
 // 加载设置
 async function loadSettings(): Promise<void> {
   try {
@@ -509,6 +566,7 @@ async function saveSettings(): Promise<void> {
 // 初始化时加载设置
 onMounted(() => {
   loadSettings()
+  getAppVersion()
 })
 </script>
 

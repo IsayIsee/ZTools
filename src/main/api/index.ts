@@ -3,6 +3,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 // 共享API（主程序和插件都能用）
 import databaseAPI from './shared/database'
 import clipboardAPI from './shared/clipboard'
+import updaterAPI from './updater'
 
 // 主程序渲染进程专用API
 import appsAPI from './renderer/apps'
@@ -57,6 +58,9 @@ class APIManager {
     pluginInputAPI.init(pluginManager)
     pluginShellAPI.init()
     pluginFeatureAPI.init(pluginManager)
+
+    // 初始化软件更新API
+    updaterAPI.init()
 
     // 设置一些特殊的IPC处理器
     this.setupSpecialHandlers()

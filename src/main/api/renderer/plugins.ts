@@ -317,51 +317,6 @@ export class PluginsAPI {
       plugins.splice(pluginIndex, 1)
       await databaseAPI.dbPut('plugins', plugins)
 
-      // 清理历史记录
-      // 卸载插件时不清理历史记录，以便重新安装后恢复
-      // try {
-      //   const history: any = await databaseAPI.dbGet('app-history')
-      //   if (history && Array.isArray(history)) {
-      //     // 如果类型是 plugin 且 path 匹配，则删除
-      //     const filteredHistory = history.filter((item: any) => {
-      //       if (item.type === 'plugin' && item.path === pluginPath) {
-      //         return false
-      //       }
-      //       return true
-      //     })
-      //     if (filteredHistory.length !== history.length) {
-      //       await databaseAPI.dbPut('app-history', filteredHistory)
-      //       console.log(`已清理 ${history.length - filteredHistory.length} 条历史记录`)
-      //     }
-      //   }
-      // } catch (error) {
-      //   console.error('清理历史记录失败:', error)
-      // }
-
-      // 清理固定列表
-      // 卸载插件时不清理固定列表，以便重新安装后恢复
-      // try {
-      //   const pinned: any = await databaseAPI.dbGet('pinned-apps')
-      //   if (pinned && Array.isArray(pinned)) {
-      //     // 匹配插件路径
-      //     const filteredPinned = pinned.filter((item: any) => {
-      //       if (item.type === 'plugin' && item.path === pluginPath) {
-      //         return false
-      //       }
-      //       return true
-      //     })
-      //     if (filteredPinned.length !== pinned.length) {
-      //       await databaseAPI.dbPut('pinned-apps', filteredPinned)
-      //       console.log(`已清理 ${pinned.length - filteredPinned.length} 条固定记录`)
-      //     }
-      //   }
-      // } catch (error) {
-      //   console.error('清理固定列表失败:', error)
-      // }
-
-      // 卸载插件时不清理动态 features，以便重新安装后恢复
-      // pluginFeatureAPI.clearPluginFeatures(pluginInfo.name)
-
       this.mainWindow?.webContents.send('plugins-changed')
 
       if (!pluginInfo.isDevelopment) {
