@@ -152,9 +152,14 @@ class APIManager {
         return
       }
 
+      // 合并动态 features（支持动态指令）
+      const { pluginFeatureAPI } = await import('./plugin/feature.js')
+      const dynamicFeatures = pluginFeatureAPI.loadDynamicFeatures(plugin.name)
+      const allFeatures = [...(plugin.features || []), ...dynamicFeatures]
+
       let targetFeature: any = null
       let targetCmdName: string = ''
-      for (const feature of plugin.features || []) {
+      for (const feature of allFeatures) {
         if (feature.cmds && Array.isArray(feature.cmds)) {
           for (const cmd of feature.cmds) {
             const cmdLabel = typeof cmd === 'string' ? cmd : cmd.label

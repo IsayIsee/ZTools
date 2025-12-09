@@ -105,7 +105,6 @@ function cmdTypeBadge(cmd: any): string {
 .plugin-detail-panel {
   position: absolute;
   inset: 0;
-  background: #ffffff;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -117,7 +116,7 @@ function cmdTypeBadge(cmd: any): string {
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .back-btn {
@@ -126,21 +125,22 @@ function cmdTypeBadge(cmd: any): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: #ffffff;
-  color: #111827;
+  background: var(--bg-color);
+  color: var(--text-color);
   font-size: 18px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background: #f3f4f6;
+  background: var(--hover-bg);
 }
 
 .topbar-title {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .detail-content {
@@ -187,7 +187,7 @@ function cmdTypeBadge(cmd: any): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: var(--active-bg);
   font-size: 28px;
 }
 
@@ -200,22 +200,22 @@ function cmdTypeBadge(cmd: any): string {
 .detail-name {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-color);
 }
 
 .detail-version {
   font-size: 12px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-secondary);
   padding: 4px 8px;
-  background: #f3f4f6;
+  background: var(--active-bg);
   border-radius: 6px;
 }
 
 .detail-desc {
   margin-top: 12px;
   font-size: 14px;
-  color: #374151;
+  color: var(--text-secondary);
   margin-left: 10px;
   margin-right: 10px;
 }
@@ -229,7 +229,7 @@ function cmdTypeBadge(cmd: any): string {
 .detail-section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-color);
   margin-bottom: 10px;
   margin-left: 10px;
   margin-right: 10px;
@@ -242,15 +242,22 @@ function cmdTypeBadge(cmd: any): string {
 }
 
 .feature-item {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 12px;
+  background: var(--bg-color);
+  transition: all 0.2s;
+}
+
+.feature-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .feature-title {
   font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-color);
   margin-bottom: 8px;
 }
 
@@ -263,10 +270,15 @@ function cmdTypeBadge(cmd: any): string {
 .cmd-chip {
   padding: 6px 10px;
   font-size: 12px;
-  color: #374151;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  color: var(--text-color);
+  background: var(--active-bg);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
+  transition: all 0.2s;
+}
+
+.cmd-chip:hover {
+  background: var(--hover-bg);
 }
 
 .cmd-text {
@@ -279,24 +291,26 @@ function cmdTypeBadge(cmd: any): string {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
 }
 
 /* 匹配指令类型标识色 */
 .cmd-chip.type-regex .cmd-badge {
-  color: #8b5cf6;
-  background: #f3e8ff;
-  border-color: #d8b4fe;
+  color: var(--purple-color);
+  background: var(--purple-light-bg);
+  border-color: var(--purple-border);
 }
 
 .cmd-chip.type-over .cmd-badge {
-  color: #10b981;
-  background: #ecfdf5;
-  border-color: #a7f3d0;
+  color: var(--success-color);
+  background: var(--success-light-bg);
+  border-color: var(--success-border);
 }
 
 .empty-feature {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
+  padding: 12px;
 }
 </style>

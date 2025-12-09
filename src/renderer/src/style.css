@@ -24,6 +24,12 @@
   --purple-color: #8b5cf6;
   --purple-light-bg: #f3e8ff;
   --purple-border: #d8b4fe;
+  --success-light-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+  --warning-light-bg: #fef3c7;
+  --warning-border: #fcd34d;
+  --danger-light-bg: #fee2e2;
+  --danger-border: #fca5a5;
   --dialog-bg: #ffffff;
 }
 
@@ -74,6 +80,12 @@
     --purple-color: #a78bfa;
     --purple-light-bg: rgba(139, 92, 246, 0.2);
     --purple-border: rgba(139, 92, 246, 0.4);
+    --success-light-bg: rgba(52, 211, 153, 0.2);
+    --success-border: rgba(52, 211, 153, 0.4);
+    --warning-light-bg: rgba(251, 191, 36, 0.2);
+    --warning-border: rgba(251, 191, 36, 0.4);
+    --danger-light-bg: rgba(248, 113, 113, 0.2);
+    --danger-border: rgba(248, 113, 113, 0.4);
     --dialog-bg: #2d2d2d;
   }
 

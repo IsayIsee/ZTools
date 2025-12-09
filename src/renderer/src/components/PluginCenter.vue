@@ -1,7 +1,7 @@
 <template>
   <div class="content-panel">
     <!-- 可滚动内容区 -->
-    <div class="scrollable-content">
+    <div v-show="!isDetailVisible" class="scrollable-content">
       <div class="panel-header">
         <div class="button-group">
           <button class="import-btn dev" :disabled="isImportingDev" @click="importDevPlugin">

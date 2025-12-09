@@ -1,7 +1,7 @@
 <template>
   <div class="plugin-market">
     <!-- 可滚动内容区 -->
-    <div class="scrollable-content">
+    <div v-show="!isDetailVisible" class="scrollable-content">
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
         <span>加载中...</span>

@@ -47,9 +47,9 @@
               v-model="targetCommand"
               type="text"
               class="text-input"
-              placeholder="格式: 插件描述/cmd名称，例如: 翻译插件/翻译"
+              placeholder="格式: 插件名称/指令名称，例如: 翻译/translate"
             />
-            <span class="form-hint">格式: 插件描述/cmd名称</span>
+            <span class="form-hint">格式: 插件名称/指令名称（支持动态指令）</span>
           </div>
         </div>
 
