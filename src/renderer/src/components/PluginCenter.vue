@@ -20,7 +20,8 @@
           :key="plugin.path"
           class="plugin-item"
           :title="plugin.description"
-          @click="openPluginDetail(plugin)">
+          @click="openPluginDetail(plugin)"
+        >
           <img v-if="plugin.logo" :src="plugin.logo" class="plugin-icon" alt="插件图标" />
           <div v-else class="plugin-icon-placeholder">🧩</div>
 
@@ -175,7 +176,12 @@ async function loadPlugins(): Promise<void> {
   isLoading.value = true
   try {
     const result = await window.ztools.getPlugins()
-    plugins.value = result || []
+    // 插件中心的插件都是已安装的，标记 installed 为 true
+    plugins.value = (result || []).map((plugin: any) => ({
+      ...plugin,
+      installed: true,
+      localVersion: plugin.version
+    }))
     // 同时加载运行中的插件
     await loadRunningPlugins()
   } catch (error) {

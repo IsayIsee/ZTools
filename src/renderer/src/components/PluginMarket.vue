@@ -85,8 +85,11 @@
     <PluginDetail
       v-if="isDetailVisible && selectedPlugin"
       :plugin="selectedPlugin"
+      :is-loading="installingPlugin === selectedPlugin.name"
       @back="closePluginDetail"
       @open="handleOpenPlugin(selectedPlugin)"
+      @download="downloadPlugin(selectedPlugin)"
+      @upgrade="handleUpgradePlugin(selectedPlugin)"
     />
   </div>
 </template>

@@ -18,7 +18,22 @@
             <div class="detail-version">v{{ plugin.version }}</div>
           </div>
           <div class="detail-actions">
-            <button class="open-btn" @click="emit('open')">打开</button>
+            <template v-if="plugin.installed">
+              <button
+                v-if="canUpgrade"
+                class="upgrade-btn"
+                :disabled="isLoading"
+                @click="emit('upgrade')"
+              >
+                <span v-if="isLoading" class="loading-spinner"></span>
+                <span v-else>升级到 v{{ plugin.version }}</span>
+              </button>
+              <button v-else class="open-btn" @click="emit('open')">打开</button>
+            </template>
+            <button v-else class="download-btn" :disabled="isLoading" @click="emit('download')">
+              <span v-if="isLoading" class="loading-spinner"></span>
+              <span v-else>下载</span>
+            </button>
           </div>
         </div>
       </div>
@@ -50,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import Icon from './Icon.vue'
 
 interface PluginFeature {
@@ -64,14 +80,43 @@ interface PluginItem {
   description?: string
   logo?: string
   features?: PluginFeature[]
+  installed?: boolean
+  localVersion?: string
 }
 
-defineProps<{ plugin: PluginItem }>()
+const props = defineProps<{ 
+  plugin: PluginItem
+  isLoading?: boolean
+}>()
 
 const emit = defineEmits<{
   (e: 'back'): void
   (e: 'open'): void
+  (e: 'download'): void
+  (e: 'upgrade'): void
 }>()
+
+// 版本比较函数
+function compareVersions(v1: string, v2: string): number {
+  if (!v1 || !v2) return 0
+  const parts1 = v1.split('.').map(Number)
+  const parts2 = v2.split('.').map(Number)
+  const len = Math.max(parts1.length, parts2.length)
+
+  for (let i = 0; i < len; i++) {
+    const num1 = parts1[i] || 0
+    const num2 = parts2[i] || 0
+    if (num1 < num2) return -1
+    if (num1 > num2) return 1
+  }
+  return 0
+}
+
+// 判断是否可以升级
+const canUpgrade = computed(() => {
+  if (!props.plugin.installed || !props.plugin.localVersion || !props.plugin.version) return false
+  return compareVersions(props.plugin.localVersion, props.plugin.version) < 0
+})
 
 function cmdLabel(cmd: any): string {
   if (cmd && typeof cmd === 'object') {
@@ -181,6 +226,62 @@ function cmdTypeBadge(cmd: any): string {
 .open-btn:hover {
   background: var(--primary-color);
   color: var(--text-on-primary);
+}
+
+.download-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  background: var(--bg-color);
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: var(--text-on-primary);
+}
+
+.upgrade-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--warning-color);
+  border-radius: 6px;
+  background: var(--bg-color);
+  color: var(--warning-color);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upgrade-btn:hover:not(:disabled) {
+  background: var(--warning-color);
+  color: var(--text-on-primary);
+}
+
+.download-btn:disabled,
+.upgrade-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .detail-icon {
