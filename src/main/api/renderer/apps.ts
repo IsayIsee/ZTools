@@ -1,15 +1,14 @@
-import { ipcMain } from 'electron'
-import { createHash } from 'crypto'
 import { exec } from 'child_process'
-import { promisify } from 'util'
+import { createHash } from 'crypto'
+import { app, ipcMain, shell } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { app } from 'electron'
-import { scanApplications } from '../../core/appScanner'
-import { launchApp } from '../../core/appLauncher'
-import databaseAPI from '../shared/database'
-import { pluginFeatureAPI } from '../plugin/feature'
+import { promisify } from 'util'
 import { normalizeIconPath } from '../../common/iconUtils'
+import { launchApp } from '../../core/appLauncher'
+import { scanApplications } from '../../core/appScanner'
+import { pluginFeatureAPI } from '../plugin/feature'
+import databaseAPI from '../shared/database'
 
 const execAsync = promisify(exec)
 
@@ -60,6 +59,12 @@ export class AppsAPI {
    */
   private async getApps(): Promise<any[]> {
     console.log('收到获取应用列表请求')
+
+    // 开发模式下强制重新扫描（方便调试）
+    if (!app.isPackaged) {
+      console.log('开发模式：跳过缓存，重新扫描应用...')
+      return await this.scanAndCacheApps()
+    }
 
     // 尝试从数据库缓存读取
     try {
@@ -191,7 +196,7 @@ export class AppsAPI {
    */
   private async launch(options: {
     path: string
-    type?: 'app' | 'plugin'
+    type?: 'direct' | 'plugin'
     featureCode?: string
     param?: any
     name?: string // cmd 名称（用于历史记录显示）
@@ -202,7 +207,7 @@ export class AppsAPI {
     this.launchParam = param || {}
 
     try {
-      // 判断是插件还是应用
+      // 判断是插件还是直接启动
       if (type === 'plugin') {
         // 如果没有传 featureCode，自动查找第一个非匹配 feature
         if (!featureCode) {
@@ -231,11 +236,17 @@ export class AppsAPI {
 
         return { success: true }
       } else {
-        // 普通应用
-        await launchApp(path)
+        // 直接启动（app 或 system-setting）
+        if (path.startsWith('ms-settings:')) {
+          // 系统设置
+          await shell.openExternal(path)
+        } else {
+          // 普通应用
+          await launchApp(path)
+        }
 
         // 添加到历史记录
-        await this.addToHistory({ path, type: 'app', name })
+        await this.addToHistory({ path, type: 'direct' as 'app', name })
 
         // 通知渲染进程应用已启动（清空搜索框等）
         this.mainWindow?.webContents.send('app-launched')

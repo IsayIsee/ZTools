@@ -1,14 +1,66 @@
+import { shell } from 'electron'
 import fs from 'fs'
 import fsPromises from 'fs/promises'
-import path from 'path'
 import os from 'os'
-import { shell } from 'electron'
-import { App } from './types'
+import path from 'path'
+import { Command } from './types'
 
-const isZhRegex = /[\u4e00-\u9fa5]/
+// ========== 配置 ==========
 
 // 图标缓存目录
 const iconDir = path.join(os.tmpdir(), 'ProcessIcon')
+
+// 要跳过的文件夹名称
+const SKIP_FOLDERS = [
+  'sdk',
+  'doc',
+  'docs',
+  'samples',
+  'sample',
+  'examples',
+  'example',
+  'demos',
+  'demo',
+  'documentation'
+]
+
+// 要跳过的目标文件扩展名（文档、网页等）
+const SKIP_EXTENSIONS = [
+  '.url', // 网页快捷方式
+  '.html', // 网页文件
+  '.htm',
+  '.pdf', // PDF文档
+  '.txt', // 文本文档
+  '.chm', // 帮助文件
+  '.doc', // Word文档
+  '.docx',
+  '.xls', // Excel文档
+  '.xlsx',
+  '.ppt', // PowerPoint文档
+  '.pptx',
+  '.md', // Markdown文档
+  '.msc' // 管理单元
+]
+
+// 要跳过的快捷方式名称关键词（不区分大小写）
+const SKIP_NAME_PATTERN = /website|网站|帮助|help|readme|read me|文档|manual|license|documentation|uninstall|unin|卸载/i
+
+// ========== 辅助函数 ==========
+
+// 检查是否应该跳过该快捷方式
+function shouldSkipShortcut(name: string, targetPath?: string): boolean {
+  // 检查名称关键词
+  if (SKIP_NAME_PATTERN.test(name)) {
+    return true
+  }
+
+  // 检查目标文件扩展名
+  if (targetPath && SKIP_EXTENSIONS.some((ext) => targetPath.toLowerCase().endsWith(ext))) {
+    return true
+  }
+
+  return false
+}
 
 // 确保图标目录存在
 async function ensureIconDir(): Promise<void> {
@@ -47,79 +99,91 @@ async function extractIcon(appPath: string, appName: string): Promise<string> {
 }
 
 // 递归扫描目录中的快捷方式
-async function scanDirectory(dirPath: string, apps: App[]): Promise<void> {
+async function scanDirectory(dirPath: string, apps: Command[]): Promise<void> {
   try {
+    console.log(`正在扫描目录: ${dirPath}`)
     const entries = await fsPromises.readdir(dirPath, { withFileTypes: true })
 
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name)
 
+      // 处理子目录
       if (entry.isDirectory()) {
+        // 跳过 SDK、示例、文档等开发相关文件夹
+        if (SKIP_FOLDERS.includes(entry.name.toLowerCase())) {
+          console.log(`跳过开发文件夹: ${entry.name}`)
+          continue
+        }
         // 递归扫描子目录
         await scanDirectory(fullPath, apps)
-      } else if (entry.isFile() && entry.name.endsWith('.lnk')) {
-        // 处理快捷方式文件
-        try {
-          const appName = path.basename(entry.name, '.lnk')
-
-          // 读取快捷方式详情
-          const shortcutDetails = shell.readShortcutLink(fullPath)
-
-          // 跳过没有目标或卸载程序的快捷方式
-          if (!shortcutDetails.target || shortcutDetails.target.toLowerCase().includes('unin')) {
-            continue
-          }
-
-          // 提取图标
-          const icon = await extractIcon(shortcutDetails.target, appName)
-
-          // 生成关键词
-          const keywords = [appName]
-
-          // 添加可执行文件名作为关键词
-          keywords.push(path.basename(shortcutDetails.target, '.exe'))
-
-          // 处理中文名称 (拼音支持已注释，可根据需要添加)
-          if (isZhRegex.test(appName)) {
-            // 可以在这里添加拼音转换逻辑
-          } else {
-            // 英文名称，添加首字母缩写
-            const firstLetters = appName
-              .split(' ')
-              .map((word) => word[0])
-              .join('')
-            if (firstLetters && firstLetters !== appName) {
-              keywords.push(firstLetters)
-            }
-          }
-
-          const app: App = {
-            name: appName,
-            path: shortcutDetails.target,
-            icon
-          }
-
-          apps.push(app)
-        } catch {
-          // 静默跳过无法读取的快捷方式（如系统特殊快捷方式：控制面板、计算机等）
-          // 这些是正常情况，不需要记录错误
-          console.error(`处理快捷方式失败 ${entry.name}`)
-        }
+        continue
       }
+
+      // 只处理 .lnk 快捷方式文件
+      if (!entry.isFile() || !entry.name.endsWith('.lnk')) {
+        continue
+      }
+
+      // 处理快捷方式
+      const appName = path.basename(entry.name, '.lnk')
+      console.log(`处理快捷方式: ${entry.name}`)
+
+      // 快速过滤：检查名称关键词（卸载程序、帮助文档等）
+      if (shouldSkipShortcut(appName)) {
+        console.log(`  跳过快捷方式: ${appName}`)
+        continue
+      }
+
+      // 尝试解析快捷方式目标
+      let shortcutDetails: Electron.ShortcutDetails | null = null
+      try {
+        shortcutDetails = shell.readShortcutLink(fullPath)
+        console.log(`  ${appName} -> target: ${shortcutDetails.target || '(空)'}`)
+      } catch (error: any) {
+        console.log(`  解析快捷方式失败: ${entry.name}, 错误: ${error.message}`)
+      }
+
+      // 获取目标路径和应用路径
+      const targetPath = shortcutDetails?.target?.trim() || ''
+      const appPath = targetPath || fullPath // 如果没有目标，使用 .lnk 文件本身
+
+      // 二次过滤：检查目标文件扩展名
+      if (shouldSkipShortcut(appName, targetPath)) {
+        console.log(`  跳过文档/网页: ${appName} -> ${path.extname(targetPath)}`)
+        continue
+      }
+
+      // 提取图标
+      let icon = ''
+      try {
+        icon = await extractIcon(appPath, appName)
+      } catch (error) {
+        console.error(`提取图标失败 ${appName}:`, error)
+      }
+
+      // 创建应用对象
+      const app: Command = {
+        name: appName,
+        path: appPath,
+        icon
+      }
+
+      apps.push(app)
+      console.log(`  ✓ 添加应用: ${appName}`)
     }
   } catch (error) {
     console.error(`扫描目录失败 ${dirPath}:`, error)
   }
 }
 
-export async function scanApplications(): Promise<App[]> {
+export async function scanApplications(): Promise<Command[]> {
   try {
     console.time('扫描应用')
 
     // 确保图标目录存在
     await ensureIconDir()
 
-    const apps: App[] = []
+    const apps: Command[] = []
 
     // Windows 开始菜单路径
     const programDataStartMenu = 'C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs'

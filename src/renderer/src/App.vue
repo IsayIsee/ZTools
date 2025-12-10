@@ -367,7 +367,12 @@ onMounted(async () => {
   // 监听全局快捷键触发的启动事件
   window.ztools.onIpcLaunch((options) => {
     console.log('收到 IPC 启动事件:', options)
-    window.ztools.launch(options)
+    // 转换旧的 'app' 类型为新的 'direct' 类型
+    const launchOptions = {
+      ...options,
+      type: options.type === 'app' ? 'direct' as const : options.type
+    }
+    window.ztools.launch(launchOptions)
   })
 
   // 监听插件重定向搜索事件

@@ -1,16 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-export interface App {
+export interface Command {
   name: string
   path: string
   icon?: string
 }
 
-contextBridge.exposeInMainWorld('ztools', {
+const api = {
   getApps: () => ipcRenderer.invoke('get-apps'),
+  getSystemSettings: () => ipcRenderer.invoke('get-system-settings'),
+  isWindows: () => ipcRenderer.invoke('is-windows'),
   launch: (options: {
     path: string
-    type?: 'app' | 'plugin'
+    type?: 'direct' | 'plugin'
     featureCode?: string
     param?: any
     name?: string
@@ -103,7 +105,7 @@ contextBridge.exposeInMainWorld('ztools', {
   onIpcLaunch: (
     callback: (options: {
       path: string
-      type?: 'app' | 'plugin'
+      type?: 'direct' | 'plugin'
       featureCode?: string
       param?: any
     }) => void
@@ -164,16 +166,20 @@ contextBridge.exposeInMainWorld('ztools', {
   getSystemVersions: () => ipcRenderer.invoke('get-system-versions'),
   // 获取系统平台 (darwin, win32, linux)
   getPlatform: () => ipcRenderer.sendSync('get-platform')
-})
+}
+
+contextBridge.exposeInMainWorld('ztools', api)
 
 // TypeScript 类型定义
 declare global {
   interface Window {
     ztools: {
-      getApps: () => Promise<App[]>
+      getApps: () => Promise<Command[]>
+      getSystemSettings: () => Promise<any[]>
+      isWindows: () => Promise<boolean>
       launch: (options: {
         path: string
-        type?: 'app' | 'plugin'
+        type?: 'direct' | 'plugin'
         featureCode?: string
         param?: any
         name?: string
@@ -200,6 +206,7 @@ declare global {
         identifier: string,
         type?: 'name' | 'bundleId' | 'path'
       ) => Promise<{ success: boolean; error?: string }>
+      revealInFinder: (filePath: string) => Promise<void>
       showContextMenu: (menuItems: any[]) => Promise<void>
       getPlugins: () => Promise<any[]>
       importPlugin: () => Promise<{ success: boolean; error?: string }>
@@ -224,6 +231,12 @@ declare global {
         clickCount?: number
       }) => Promise<{ success: boolean; error?: string }>
       selectAvatar: () => Promise<{ success: boolean; path?: string; error?: string }>
+      // 历史记录管理
+      removeFromHistory: (appPath: string, featureCode?: string) => Promise<void>
+      // 固定应用管理
+      pinApp: (app: any) => Promise<void>
+      unpinApp: (appPath: string, featureCode?: string) => Promise<void>
+      updatePinnedOrder: (newOrder: any[]) => Promise<void>
       hidePlugin: () => void
       onContextMenuCommand: (callback: (command: string) => void) => void
       onFocusSearch: (callback: () => void) => void
@@ -241,6 +254,18 @@ declare global {
       onShowSettings: (callback: () => void) => void
       onAppLaunched: (callback: () => void) => void
       onHistoryChanged: (callback: () => void) => void
+      onPinnedChanged: (callback: () => void) => void
+      onIpcLaunch: (callback: (options: {
+        path: string
+        type?: 'direct' | 'plugin'
+        featureCode?: string
+        param?: any
+        name?: string
+        cmdType?: string
+      }) => void) => void
+      onRedirectSearch: (callback: (data: { cmdName: string; payload?: any }) => void) => void
+      onSetSubInputValue: (callback: (text: string) => void) => void
+      onFocusSubInput: (callback: () => void) => void
       openPluginDevTools: () => Promise<{ success: boolean; error?: string }>
       detachPlugin: () => Promise<{ success: boolean; error?: string }>
       // 快捷键相关

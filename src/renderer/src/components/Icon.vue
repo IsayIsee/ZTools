@@ -138,6 +138,56 @@
       stroke-linejoin="round"
     />
 
+    <!-- 列表图标 -->
+    <path
+      v-if="name === 'list'"
+      d="M8 6H21"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      v-if="name === 'list'"
+      d="M8 12H21"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      v-if="name === 'list'"
+      d="M8 18H21"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      v-if="name === 'list'"
+      d="M3 6H3.01"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      v-if="name === 'list'"
+      d="M3 12H3.01"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      v-if="name === 'list'"
+      d="M3 18H3.01"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
     <!-- 垃圾桶图标 -->
     <path
       v-if="name === 'trash'"
@@ -160,7 +210,7 @@
 
 <script setup lang="ts">
 defineProps<{
-  name: 'settings' | 'plugin' | 'back' | 'keyboard' | 'store' | 'database' | 'trash'
+  name: 'settings' | 'plugin' | 'back' | 'keyboard' | 'store' | 'database' | 'trash' | 'list'
   size?: number | string
 }>()
 </script>

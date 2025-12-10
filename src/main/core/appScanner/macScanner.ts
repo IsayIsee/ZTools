@@ -1,10 +1,10 @@
 import { exec } from 'child_process'
-import { promisify } from 'util'
-import path from 'path'
-import fs from 'fs/promises'
 import fsSync from 'fs'
+import fs from 'fs/promises'
+import path from 'path'
 import plist from 'simple-plist'
-import { App } from './types'
+import { promisify } from 'util'
+import { Command } from './types'
 import { pLimit } from './utils'
 
 const execAsync = promisify(exec)
@@ -52,7 +52,7 @@ async function getIconFile(appPath: string): Promise<string> {
   })
 }
 
-export async function scanApplications(): Promise<App[]> {
+export async function scanApplications(): Promise<Command[]> {
   try {
     console.time('扫描应用')
 

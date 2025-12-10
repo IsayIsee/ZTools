@@ -35,6 +35,8 @@
   --danger-light-bg: #fee2e2;
   --danger-border: #fca5a5;
   --dialog-bg: #f4f4f4;
+  /* 系统设置图标滤镜：亮色模式下显示为灰色 */
+  --system-icon-filter: brightness(0) saturate(100%) invert(40%);
 }
 
 /* macOS 下使用透明背景 */
@@ -100,6 +102,8 @@
     --danger-light-bg: rgba(248, 113, 113, 0.2);
     --danger-border: rgba(248, 113, 113, 0.4);
     --dialog-bg: #303133;
+    /* 系统设置图标滤镜：暗色模式下不需要反转 */
+    --system-icon-filter: none;
   }
 
   /* macOS 暗色模式下使用透明背景 */

@@ -42,14 +42,27 @@
 
     <!-- 有搜索时显示搜索结果 -->
     <div v-else class="search-results">
-      <!-- 最佳匹配 -->
+      <!-- 应用和插件 -->
       <CollapsibleList
-        v-if="internalSearchResults.length > 0"
+        v-if="appAndPluginResults.length > 0"
         v-model:expanded="isSearchResultsExpanded"
         title="最佳匹配"
-        :apps="internalSearchResults"
+        :apps="appAndPluginResults"
         :selected-index="searchResultSelectedIndex"
         :empty-text="'未找到应用'"
+        :default-visible-rows="2"
+        :draggable="false"
+        @select="handleSelectApp"
+        @contextmenu="(app) => handleAppContextMenu(app, true)"
+      />
+
+      <!-- 系统设置 -->
+      <CollapsibleList
+        v-if="systemSettingResults.length > 0"
+        v-model:expanded="isSystemSettingsExpanded"
+        title="系统设置"
+        :apps="systemSettingResults"
+        :selected-index="systemSettingSelectedIndex"
         :default-visible-rows="2"
         :draggable="false"
         @select="handleSelectApp"
@@ -109,6 +122,7 @@ const selectedCol = ref(0)
 const isRecentExpanded = ref(false)
 const isPinnedExpanded = ref(false)
 const isSearchResultsExpanded = ref(false)
+const isSystemSettingsExpanded = ref(false)
 const isRecommendationsExpanded = ref(false)
 const scrollContainerRef = ref<HTMLElement>()
 
@@ -116,6 +130,18 @@ const scrollContainerRef = ref<HTMLElement>()
 const internalSearchResults = computed(() => {
   const result = search(props.searchQuery)
   return result.bestMatches
+})
+
+// 分离系统设置结果
+const systemSettingResults = computed(() => {
+  if (!props.searchQuery.trim()) return []
+  return internalSearchResults.value.filter((item: any) => item.type === 'direct' && item.subType === 'system-setting')
+})
+
+// 应用和插件结果（排除系统设置）
+const appAndPluginResults = computed(() => {
+  if (!props.searchQuery.trim()) return []
+  return internalSearchResults.value.filter((item: any) => !(item.type === 'direct' && item.subType === 'system-setting'))
 })
 
 // 推荐列表
@@ -133,7 +159,8 @@ const recommendations = computed(() => {
     {
       name: '百度搜索',
       path: `baidu-search:${props.searchQuery}`,
-      icon: '🔍'
+      icon: '🔍',
+      type: 'builtin' as const
     }
   ]
 })
@@ -148,12 +175,14 @@ const finderActions = computed(() => {
     {
       name: '复制路径',
       path: 'finder-action:copy-path',
-      icon: '📋'
+      icon: '📋',
+      type: 'builtin' as const
     },
     {
       name: '在终端打开',
       path: 'finder-action:open-terminal',
-      icon: '⌨️'
+      icon: '⌨️',
+      type: 'builtin' as const
     }
   ]
 })
@@ -197,12 +226,20 @@ function arrayToGrid(arr: any[], cols = 9): any[][] {
   return grid
 }
 
-// 可见的搜索结果（用于键盘导航）
-const visibleSearchResults = computed(() => {
+// 可见的应用和插件结果（用于键盘导航）
+const visibleAppAndPluginResults = computed(() => {
   if (isSearchResultsExpanded.value) {
-    return internalSearchResults.value
+    return appAndPluginResults.value
   }
-  return internalSearchResults.value.slice(0, 18) // 默认显示2行（18个）
+  return appAndPluginResults.value.slice(0, 18) // 默认显示2行（18个）
+})
+
+// 可见的系统设置结果（用于键盘导航）
+const visibleSystemSettingResults = computed(() => {
+  if (isSystemSettingsExpanded.value) {
+    return systemSettingResults.value
+  }
+  return systemSettingResults.value.slice(0, 18) // 默认显示2行（18个）
 })
 
 // 可见的推荐列表（用于键盘导航）
@@ -218,11 +255,18 @@ const navigationGrid = computed(() => {
   const sections: any[] = []
 
   if (props.searchQuery.trim()) {
-    // 有搜索时：搜索结果 + 推荐
-    if (visibleSearchResults.value.length > 0) {
-      const searchGrid = arrayToGrid(visibleSearchResults.value)
+    // 有搜索时：应用和插件 + 系统设置 + 推荐
+    if (visibleAppAndPluginResults.value.length > 0) {
+      const searchGrid = arrayToGrid(visibleAppAndPluginResults.value)
       searchGrid.forEach((row) => {
         sections.push({ type: 'search', items: row })
+      })
+    }
+
+    if (visibleSystemSettingResults.value.length > 0) {
+      const settingGrid = arrayToGrid(visibleSystemSettingResults.value)
+      settingGrid.forEach((row) => {
+        sections.push({ type: 'system-setting', items: row })
       })
     }
 
@@ -287,6 +331,12 @@ const searchResultSelectedIndex = computed(() => {
   return getAbsoluteIndexForSection('search')
 })
 
+// 计算系统设置的选中索引
+const systemSettingSelectedIndex = computed(() => {
+  if (!props.searchQuery.trim()) return -1
+  return getAbsoluteIndexForSection('system-setting')
+})
+
 // 计算推荐列表中的选中索引
 const recommendationSelectedIndex = computed(() => {
   if (!props.searchQuery.trim()) return -1
@@ -320,7 +370,7 @@ watch(
 
 // 监听展开状态变化，调整窗口高度
 watch(
-  [isRecentExpanded, isPinnedExpanded, isSearchResultsExpanded, isRecommendationsExpanded],
+  [isRecentExpanded, isPinnedExpanded, isSearchResultsExpanded, isSystemSettingsExpanded, isRecommendationsExpanded],
   () => {
     nextTick(() => {
       emit('height-changed')
@@ -436,8 +486,8 @@ async function handleAppContextMenu(
     })
   }
 
-  // 如果是应用（不是插件），显示"打开文件位置"
-  if (app.type !== 'plugin' && app.path && !app.path.startsWith('baidu-search:')) {
+  // 如果是应用（不是插件和系统设置），显示"打开文件位置"
+  if (app.type !== 'system-setting' && app.type !== 'plugin' && app.path && !app.path.startsWith('baidu-search:')) {
     menuItems.push({
       id: `reveal-in-finder:${JSON.stringify({ path: app.path })}`,
       label: '打开文件位置'

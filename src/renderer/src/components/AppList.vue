@@ -28,7 +28,7 @@
           <img
             v-else-if="app.icon"
             :src="app.icon"
-            class="app-icon"
+            :class="['app-icon', { 'system-setting-icon': app.subType === 'system-setting' }]"
             @error="(e) => onIconError(e, app)"
           />
           <!-- 占位图标 -->
@@ -59,7 +59,7 @@
         <img
           v-else-if="app.icon"
           :src="app.icon"
-          class="app-icon"
+          :class="['app-icon', { 'system-setting-icon': app.subType === 'system-setting' }]"
           @error="(e) => onIconError(e, app)"
         />
         <!-- 占位图标 -->
@@ -76,26 +76,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
-import Draggable from 'vuedraggable'
-import { highlightMatch } from '../utils/highlight'
-
-interface MatchInfo {
-  indices: Array<[number, number]>
-  value: string
-  key: string
-}
-
-interface App {
-  name: string
-  path: string
-  icon?: string
-  matches?: MatchInfo[]
-}
+import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue';
+import Draggable from 'vuedraggable';
+import type { Command } from '../stores/appDataStore';
+import { highlightMatch } from '../utils/highlight';
 
 const props = withDefaults(
 defineProps<{
-  apps: App[]
+  apps: Command[]
   selectedIndex: number
   emptyText?: string
     draggable?: boolean
@@ -107,9 +95,9 @@ defineProps<{
 )
 
 const emit = defineEmits<{
-  (e: 'select', app: App): void
-  (e: 'contextmenu', app: App): void
-  (e: 'update:apps', apps: App[]): void
+  (e: 'select', app: Command): void
+  (e: 'contextmenu', app: Command): void
+  (e: 'update:apps', apps: Command[]): void
 }>()
 
 // 可拖拽列表的数据绑定
@@ -172,11 +160,11 @@ watch(
   }
 )
 
-function getHighlightedName(app: App): string {
+function getHighlightedName(app: Command): string {
   return highlightMatch(app.name, app.matches)
 }
 
-function onIconError(event: Event, app: App): void {
+function onIconError(event: Event, app: Command): void {
   // 图标加载失败,隐藏图标
   ;(event.target as HTMLImageElement).style.display = 'none'
   console.warn(`无法加载图标: ${app.name}`)
@@ -250,6 +238,11 @@ defineExpose({
   margin-bottom: 8px;
   border-radius: 8px;
   flex-shrink: 0;
+}
+
+/* 系统设置图标在亮色模式下反转颜色 */
+.app-icon.system-setting-icon {
+  filter: var(--system-icon-filter);
 }
 
 .app-icon-emoji {

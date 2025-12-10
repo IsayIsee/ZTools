@@ -4,14 +4,16 @@ declare global {
   interface Window {
     ztools: {
       getApps: () => Promise<Array<{ name: string; path: string; icon?: string }>>
-      launch: (options: {
-        path: string
-        type?: 'app' | 'plugin'
-        featureCode?: string
-        param?: any
-        name?: string
-        cmdType?: string // cmd 类型（用于判断是否添加历史记录）
-      }) => Promise<any>
+      getSystemSettings: () => Promise<any[]>
+      isWindows: () => Promise<boolean>
+    launch: (options: {
+      path: string
+      type?: 'direct' | 'plugin'
+      featureCode?: string
+      param?: any
+      name?: string
+      cmdType?: string // cmd 类型（用于判断是否添加历史记录）
+    }) => Promise<any>
       hideWindow: () => void
       resizeWindow: (height: number) => void
       setWindowOpacity: (opacity: number) => void

@@ -1,9 +1,9 @@
-export interface App {
+export interface Command {
   name: string
   path: string
   icon?: string
 }
 
 export interface AppScanner {
-  scanApplications(): Promise<App[]>
+  scanApplications(): Promise<Command[]>
 }

@@ -12,6 +12,9 @@ declare global {
       isWindows: () => boolean
       isLinux: () => boolean
       isDarkColors: () => boolean
+      
+      // ===== 系统设置 =====
+      getSystemSettings: () => Promise<any[]>
 
       // ===== 插件生命周期 =====
       onPluginEnter: (callback: (launchParam: any) => void) => Promise<void>

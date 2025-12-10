@@ -1,13 +1,13 @@
-import { ipcMain, app, dialog } from 'electron'
+import AdmZip from 'adm-zip'
+import { app, dialog, ipcMain } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
-import AdmZip from 'adm-zip'
-import { getLanzouDownloadLink, getLanzouFolderFileList } from '../../utils/lanzou.js'
-import { downloadFile } from '../../utils/download.js'
-import { sleep } from '../../utils/common.js'
-import databaseAPI from '../shared/database'
-import { pluginFeatureAPI } from '../plugin/feature'
 import { normalizeIconPath } from '../../common/iconUtils'
+import { sleep } from '../../utils/common.js'
+import { downloadFile } from '../../utils/download.js'
+import { getLanzouDownloadLink, getLanzouFolderFileList } from '../../utils/lanzou.js'
+import { pluginFeatureAPI } from '../plugin/feature'
+import databaseAPI from '../shared/database'
 
 // 插件目录
 const PLUGIN_DIR = path.join(app.getPath('userData'), 'plugins')

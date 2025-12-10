@@ -1,9 +1,9 @@
-import { App } from './types'
+import { Command } from './types'
 
-export type { App, AppScanner } from './types'
+export type { AppScanner, Command } from './types'
 
 // 平台检测并导出对应的扫描函数
-export async function scanApplications(): Promise<App[]> {
+export async function scanApplications(): Promise<Command[]> {
   const platform = process.platform
 
   if (platform === 'darwin') {

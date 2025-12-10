@@ -11,6 +11,7 @@ import pluginsAPI from './renderer/plugins'
 import windowAPI from './renderer/window'
 import settingsAPI from './renderer/settings'
 import systemAPI from './renderer/system'
+import { systemSettingsAPI } from './renderer/systemSettings'
 
 // 插件专用API
 import pluginLifecycleAPI from './plugin/lifecycle'
@@ -48,6 +49,7 @@ class APIManager {
     windowAPI.init(mainWindow)
     settingsAPI.init(mainWindow)
     systemAPI.init(mainWindow)
+    systemSettingsAPI.init(mainWindow)
 
     // 初始化插件API
     pluginLifecycleAPI.init(mainWindow, pluginManager)
@@ -76,6 +78,10 @@ class APIManager {
    * 这些处理器需要协调多个模块，所以放在这里统一管理
    */
   private setupSpecialHandlers(): void {
+    // 系统设置 API
+    ipcMain.handle('get-system-settings', () => systemSettingsAPI.getSystemSettings())
+    ipcMain.handle('is-windows', () => systemSettingsAPI.isWindows())
+    
     // 打开插件开发者工具
     ipcMain.handle('open-plugin-devtools', () => {
       try {

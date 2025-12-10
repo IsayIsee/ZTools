@@ -30,12 +30,16 @@
 
       <!-- 全局快捷键 -->
       <GlobalShortcuts v-if="activeMenu === 'shortcuts'" />
+
+      <!-- 所有指令 -->
+      <AllCommands v-if="activeMenu === 'all-commands'" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import AllCommands from './AllCommands.vue'
 import DataManagement from './DataManagement.vue'
 import GeneralSettings from './GeneralSettings.vue'
 import GlobalShortcuts from './GlobalShortcuts.vue'
@@ -46,7 +50,7 @@ import PluginMarket from './PluginMarket.vue'
 // 菜单项类型
 interface MenuItem {
   id: string
-  icon: 'settings' | 'plugin' | 'keyboard' | 'store' | 'database'
+  icon: 'settings' | 'plugin' | 'keyboard' | 'store' | 'database' | 'list'
   label: string
 }
 
@@ -56,7 +60,8 @@ const menuItems: MenuItem[] = [
   { id: 'shortcuts', icon: 'keyboard', label: '全局快捷键' },
   { id: 'plugins', icon: 'plugin', label: '已安装插件' },
   { id: 'market', icon: 'store', label: '插件市场' },
-  { id: 'data', icon: 'database', label: '我的数据' }
+  { id: 'data', icon: 'database', label: '我的数据' },
+  { id: 'all-commands', icon: 'list', label: '所有指令' }
 ]
 
 const activeMenu = ref('general')

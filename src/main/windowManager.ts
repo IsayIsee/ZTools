@@ -10,7 +10,6 @@ import {
   Tray
 } from 'electron'
 import path from 'path'
-import trayIconDark from '../../resources/trayTemplate@2x-dark.png?asset'
 import trayIconLight from '../../resources/trayTemplate@2x-light.png?asset'
 import trayIcon from '../../resources/trayTemplate@2x.png?asset'
 import clipboardManager from './clipboardManager'
@@ -161,7 +160,7 @@ class WindowManager {
     } else {
       // Windows/Linux - 根据系统主题选择图标
       // 暗色模式用 light（白色图标），亮色模式用 dark（黑色图标）
-      const iconPath = nativeTheme.shouldUseDarkColors ? trayIconLight : trayIconDark
+      const iconPath = nativeTheme.shouldUseDarkColors ? trayIconLight : trayIcon
       icon = nativeImage.createFromPath(iconPath)
     }
 
@@ -200,7 +199,7 @@ class WindowManager {
     if (!this.tray || platform.isMacOS) return
 
     // 暗色模式用 light（白色图标），亮色模式用 dark（黑色图标）
-    const iconPath = nativeTheme.shouldUseDarkColors ? trayIconLight : trayIconDark
+    const iconPath = nativeTheme.shouldUseDarkColors ? trayIconLight : trayIcon
     const icon = nativeImage.createFromPath(iconPath)
     this.tray.setImage(icon)
   }

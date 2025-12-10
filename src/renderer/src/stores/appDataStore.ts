@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
-import { ref, nextTick } from 'vue'
 import Fuse from 'fuse.js'
+import { defineStore } from 'pinia'
 import { pinyin } from 'pinyin-pro'
+import { nextTick, ref } from 'vue'
 
 // 正则匹配指令
 interface RegexCmd {
@@ -23,17 +23,34 @@ interface OverCmd {
 // 匹配指令联合类型
 type MatchCmd = RegexCmd | OverCmd
 
-export interface App {
+// 指令类型枚举
+export type CommandType = 
+  | 'direct'   // 直接启动（app + system-setting）
+  | 'plugin'   // 插件功能
+  | 'builtin'  // 内置功能
+
+// 子类型（用于区分 direct 类型的具体来源）
+export type CommandSubType = 
+  | 'app'              // 系统应用
+  | 'system-setting'   // 系统设置
+
+// Command 接口（原 App 接口）
+export interface Command {
   name: string
   path: string // 纯路径（应用路径 或 插件根目录路径）
   icon?: string
   pinyin?: string
   pinyinAbbr?: string
-  type?: 'app' | 'plugin' // 区分应用和插件
+  type: CommandType // 指令类型
+  subType?: CommandSubType // 子类型（用于区分 direct 类型）
   featureCode?: string // 插件功能代码（用于启动时指定功能）
   pluginExplain?: string // 插件功能说明
   matchCmd?: MatchCmd // 匹配指令配置（regex 或 over）
   cmdType?: 'text' | 'regex' | 'over' // cmd类型：text=字符串，regex=正则表达式，over=任意文本匹配
+  matches?: MatchInfo[] // 搜索匹配信息（用于高亮显示）
+  // 系统设置字段（新增）
+  settingUri?: string // ms-settings URI
+  category?: string // 分类（用于分组显示）
 }
 
 interface MatchInfo {
@@ -42,11 +59,11 @@ interface MatchInfo {
   key: string
 }
 
-export interface SearchResult extends App {
+export interface SearchResult extends Command {
   matches?: MatchInfo[]
 }
 
-interface HistoryItem extends App {
+interface HistoryItem extends Command {
   lastUsed: number // 时间戳
   useCount: number // 使用次数
 }
@@ -58,12 +75,12 @@ export const useAppDataStore = defineStore('appData', () => {
   // 历史记录
   const history = ref<HistoryItem[]>([])
   // 固定应用
-  const pinnedApps = ref<App[]>([])
+  const pinnedApps = ref<Command[]>([])
   // 应用和插件列表（用于搜索）
-  const apps = ref<App[]>([]) // 用于 Fuse 模糊搜索的应用列表
-  const regexApps = ref<App[]>([]) // 只用正则匹配的应用列表
+  const apps = ref<Command[]>([]) // 用于 Fuse 模糊搜索的应用列表
+  const regexApps = ref<Command[]>([]) // 只用正则匹配的应用列表
   const loading = ref(false)
-  const fuse = ref<Fuse<App> | null>(null)
+  const fuse = ref<Fuse<Command> | null>(null)
   // 是否已初始化
   const isInitialized = ref(false)
   // 标记是否是本地触发的更新（用于避免重复加载）
@@ -194,7 +211,8 @@ export const useAppDataStore = defineStore('appData', () => {
       // 处理本地应用
       const appItems = rawApps.map((app) => ({
         ...app,
-        type: 'app' as const,
+        type: 'direct' as const,
+        subType: 'app' as const,
         pinyin: pinyin(app.name, { toneType: 'none', type: 'string' })
           .replace(/\s+/g, '')
           .toLowerCase(),
@@ -204,8 +222,8 @@ export const useAppDataStore = defineStore('appData', () => {
       }))
 
       // 处理插件：每个 cmd 转换为一个独立搜索项
-      const pluginItems: App[] = [] // 普通插件搜索项
-      const regexItems: App[] = [] // 正则匹配搜索项
+      const pluginItems: Command[] = [] // 普通插件搜索项
+      const regexItems: Command[] = [] // 正则匹配搜索项
 
       for (const plugin of plugins) {
         if (plugin.features && Array.isArray(plugin.features) && plugin.features.length > 0) {
@@ -291,11 +309,39 @@ export const useAppDataStore = defineStore('appData', () => {
         }
       }
 
-      apps.value = [...appItems, ...pluginItems]
+      // 3. 加载系统设置（仅 Windows 平台）
+      let settingCommands: Command[] = []
+      try {
+        const isWindows = await window.ztools.isWindows()
+        if (isWindows) {
+          const settings = await window.ztools.getSystemSettings()
+          console.log('系统设置图标路径示例:', settings[0]?.icon)
+          settingCommands = settings.map((s: any) => ({
+            name: s.name,
+            path: s.uri,
+            icon: s.icon,
+            type: 'direct' as const,
+            subType: 'system-setting' as const,
+            settingUri: s.uri,
+            category: s.category,
+            pinyin: pinyin(s.name, { toneType: 'none', type: 'string' })
+              .replace(/\s+/g, '')
+              .toLowerCase(),
+            pinyinAbbr: pinyin(s.name, { pattern: 'first', toneType: 'none', type: 'string' })
+              .replace(/\s+/g, '')
+              .toLowerCase()
+          }))
+        }
+      } catch (error) {
+        console.error('加载系统设置失败:', error)
+      }
+
+      // 合并所有指令
+      apps.value = [...appItems, ...pluginItems, ...settingCommands]
       regexApps.value = regexItems
 
       console.log(
-        `加载了 ${appItems.length} 个应用, ${pluginItems.length} 个插件功能, ${regexItems.length} 个正则匹配插件`
+        `加载了 ${appItems.length} 个应用, ${pluginItems.length} 个插件功能, ${settingCommands.length} 个系统设置, ${regexItems.length} 个匹配指令`
       )
 
       // 初始化 Fuse.js 搜索引擎
@@ -321,7 +367,7 @@ export const useAppDataStore = defineStore('appData', () => {
   function search(query: string): { bestMatches: SearchResult[]; regexMatches: SearchResult[] } {
     if (!query || !fuse.value) {
       return {
-        bestMatches: apps.value.filter((app) => app.type === 'app'), // 无搜索时只显示应用
+        bestMatches: apps.value.filter((app) => app.type === 'direct' && app.subType === 'app'), // 无搜索时只显示应用
         regexMatches: []
       }
     }
@@ -415,7 +461,7 @@ export const useAppDataStore = defineStore('appData', () => {
   }
 
   // 获取最近使用的应用
-  function getRecentApps(limit?: number): App[] {
+  function getRecentApps(limit?: number): Command[] {
     if (limit) {
       return history.value.slice(0, limit)
     }
@@ -466,10 +512,10 @@ export const useAppDataStore = defineStore('appData', () => {
   }
 
   // 固定应用
-  async function pinApp(app: App): Promise<void> {
+  async function pinApp(command: Command): Promise<void> {
     // 将 Vue 响应式对象转换为纯对象，避免 IPC 传递时的克隆错误
-    const plainApp = JSON.parse(JSON.stringify(app))
-    await window.ztools.pinApp(plainApp)
+    const plainCommand = JSON.parse(JSON.stringify(command))
+    await window.ztools.pinApp(plainCommand)
     // 后端会发送 pinned-changed 事件，触发重新加载
   }
 
@@ -480,12 +526,12 @@ export const useAppDataStore = defineStore('appData', () => {
   }
 
   // 获取固定列表
-  function getPinnedApps(): App[] {
+  function getPinnedApps(): Command[] {
     return pinnedApps.value
   }
 
   // 更新固定列表顺序
-  async function updatePinnedOrder(newOrder: App[]): Promise<void> {
+  async function updatePinnedOrder(newOrder: Command[]): Promise<void> {
     // 乐观更新：立即更新本地状态，避免等待后端导致的延迟和闪动
     pinnedApps.value = newOrder
 
@@ -515,6 +561,7 @@ export const useAppDataStore = defineStore('appData', () => {
     history,
     pinnedApps,
     apps,
+    regexApps,
     loading,
     isInitialized,
 
