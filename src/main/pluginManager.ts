@@ -255,6 +255,11 @@ class PluginManager {
   // 隐藏插件视图
   public hidePluginView(): void {
     if (this.pluginView && this.mainWindow) {
+      // 发送插件退出事件（isKill=false 表示正常退出）
+      if (!this.pluginView.webContents.isDestroyed()) {
+        this.pluginView.webContents.send('plugin-out', false)
+      }
+
       // 仅移除视图以达到隐藏效果，但保留实例以便复用
       this.mainWindow.contentView.removeChildView(this.pluginView)
 
