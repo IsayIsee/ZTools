@@ -1,8 +1,33 @@
-import { exec } from 'child_process'
+import { spawn } from 'child_process'
 import { shell } from 'electron'
-import { promisify } from 'util'
 
-const execAsync = promisify(exec)
+/**
+ * 执行系统命令（不等待进程结束，适用于 GUI 应用）
+ * @param command 完整命令字符串（如 "rundll32 shell32.dll,Control_RunDLL"）或命令名
+ * @param args 命令参数数组（如果提供了 command 作为命令名）
+ */
+function execCommand(command: string, args: string[] = []): void {
+  let subprocess
+
+  if (args.length > 0) {
+    // 如果提供了 args，command 是命令名，直接使用 spawn
+    subprocess = spawn(command, args, {
+      detached: true,
+      stdio: 'ignore'
+    })
+  } else {
+    // 否则，command 是完整命令字符串，使用 shell 执行
+    // 在 Windows 上使用 cmd.exe /c 来执行完整命令
+    subprocess = spawn('cmd.exe', ['/c', command], {
+      detached: true,
+      stdio: 'ignore',
+      shell: false
+    })
+  }
+
+  // 不等待子进程，让 Node.js 可以继续执行
+  subprocess.unref()
+}
 
 export async function launchApp(appPath: string): Promise<void> {
   // 检查是否是系统设置 URI
@@ -24,7 +49,7 @@ export async function launchApp(appPath: string): Promise<void> {
     appPath.startsWith('msdt.exe ')
   ) {
     try {
-      await execAsync(appPath)
+      execCommand(appPath)
       console.log(`成功执行系统命令: ${appPath}`)
       return
     } catch (error) {
@@ -39,7 +64,7 @@ export async function launchApp(appPath: string): Promise<void> {
   // .cpl 文件 - 使用 control.exe 启动
   if (ext === 'cpl') {
     try {
-      await execAsync(`control.exe ${appPath}`)
+      execCommand('control.exe', [appPath])
       console.log(`成功打开控制面板项: ${appPath}`)
       return
     } catch (error) {
@@ -51,7 +76,7 @@ export async function launchApp(appPath: string): Promise<void> {
   // .msc 文件 - 使用 mmc.exe 启动
   if (ext === 'msc') {
     try {
-      await execAsync(`mmc.exe ${appPath}`)
+      execCommand('mmc.exe', [appPath])
       console.log(`成功打开管理工具: ${appPath}`)
       return
     } catch (error) {
@@ -62,15 +87,14 @@ export async function launchApp(appPath: string): Promise<void> {
 
   // 系统可执行文件（不包含路径分隔符，说明在 PATH 中）
   if (ext === 'exe' && !appPath.includes('\\')) {
-    try {
-      // 使用 start 命令启动（会从 PATH 环境变量中查找）
-      await execAsync(`start "" "${appPath}"`)
-      console.log(`成功启动系统命令: ${appPath}`)
-      return
-    } catch (error) {
-      console.error('启动系统命令失败:', error)
-      throw error
+    // 对于 PATH 中的可执行文件，使用 shell.openPath（Electron 会自动在 PATH 中查找）
+    // 这是最可靠的方式，避免路径解析问题
+    const error = await shell.openPath(appPath)
+    if (error) {
+      throw new Error(`启动系统命令失败: ${error}`)
     }
+    console.log(`成功启动系统命令: ${appPath}`)
+    return
   }
 
   // 先尝试使用 shell.openPath()（适用于大多数情况，包括 .lnk 快捷方式）
