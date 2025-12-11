@@ -138,7 +138,8 @@ export class PluginRedirectAPI {
       }
     } catch (error: unknown) {
       console.error('处理跳转逻辑失败:', error)
-      this.showNotification(`跳转失败: ${error.message || '未知错误'}`)
+      const errorMsg = error instanceof Error ? error.message : '未知错误'
+      this.showNotification(`跳转失败: ${errorMsg}`)
     }
   }
 

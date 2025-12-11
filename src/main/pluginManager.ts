@@ -682,7 +682,10 @@ class PluginManager {
       return { success: true }
     } catch (error: unknown) {
       console.error('分离插件失败:', error)
-      return { success: false, error: error.message || '未知错误' }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      }
     }
   }
 }

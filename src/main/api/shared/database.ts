@@ -298,7 +298,7 @@ export class DatabaseAPI {
         event.returnValue = result.ok ? undefined : result
       } catch (error: unknown) {
         console.error('dbStorage.setItem 失败:', error)
-        event.returnValue = { error: error.message }
+        event.returnValue = { error: error instanceof Error ? error.message : String(error) }
       }
     })
 
@@ -324,7 +324,7 @@ export class DatabaseAPI {
         event.returnValue = result.ok ? undefined : result
       } catch (error: unknown) {
         console.error('dbStorage.removeItem 失败:', error)
-        event.returnValue = { error: error.message }
+        event.returnValue = { error: error instanceof Error ? error.message : String(error) }
       }
     })
 
@@ -394,7 +394,7 @@ export class DatabaseAPI {
         return { success: true, data }
       } catch (error: unknown) {
         console.error('获取插件数据统计失败:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error instanceof Error ? error.message : String(error) }
       }
     })
 
@@ -427,7 +427,7 @@ export class DatabaseAPI {
         return { success: true, data: keys }
       } catch (error: unknown) {
         console.error('获取插件文档 keys 失败:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error instanceof Error ? error.message : String(error) }
       }
     })
 
@@ -460,7 +460,7 @@ export class DatabaseAPI {
         return { success: false, error: '文档不存在' }
       } catch (error: unknown) {
         console.error('获取插件文档失败:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error instanceof Error ? error.message : String(error) }
       }
     })
 
@@ -510,7 +510,7 @@ export class DatabaseAPI {
         return { success: true, deletedCount }
       } catch (error: unknown) {
         console.error('清空插件数据失败:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error instanceof Error ? error.message : String(error) }
       }
     })
   }

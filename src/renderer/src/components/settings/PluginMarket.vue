@@ -31,7 +31,9 @@
                 :disabled="installingPlugin === plugin.name"
                 @click.stop="handleUpgradePlugin(plugin)"
               >
-                <span v-if="installingPlugin === plugin.name">...</span>
+                <div v-if="installingPlugin === plugin.name" class="btn-loading">
+                  <div class="spinner"></div>
+                </div>
                 <span v-else>升级</span>
               </button>
               <button
@@ -62,7 +64,7 @@
               :disabled="installingPlugin === plugin.name"
               @click.stop="downloadPlugin(plugin)"
             >
-              <span v-if="installingPlugin === plugin.name">...</span>
+              <div v-if="installingPlugin === plugin.name" class="spinner"></div>
               <svg
                 v-else
                 width="14"
@@ -437,5 +439,28 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 按钮 loading 状态 */
+.btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* 升级按钮中的 spinner */
+.btn-warning .spinner {
+  border-top-color: var(--text-on-primary);
+  border-right-color: var(--text-on-primary);
 }
 </style>

@@ -17,7 +17,10 @@ export class PluginShellAPI {
         event.returnValue = { success: true }
       } catch (error: unknown) {
         console.error('打开 URL 失败:', error)
-        event.returnValue = { success: false, error: error.message }
+        event.returnValue = {
+          success: false,
+          error: error instanceof Error ? error.message : '未知错误'
+        }
       }
     })
 

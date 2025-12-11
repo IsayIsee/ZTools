@@ -16,7 +16,9 @@
               :disabled="isLoading"
               @click="emit('upgrade')"
             >
-              <span v-if="isLoading" class="loading-spinner"></span>
+              <div v-if="isLoading" class="btn-loading">
+                <div class="spinner"></div>
+              </div>
               <span v-else>升级到 v{{ plugin.version }}</span>
             </button>
             <button v-else class="btn btn-md" @click="emit('open')">打开</button>
@@ -28,7 +30,7 @@
             :disabled="isLoading"
             @click="emit('download')"
           >
-            <span v-if="isLoading" class="loading-spinner"></span>
+            <div v-if="isLoading" class="spinner"></div>
             <svg
               v-else
               width="20"
@@ -192,14 +194,27 @@ function cmdTypeBadge(cmd: any): string {
   min-width: 60px;
 }
 
-.loading-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
+/* 按钮 loading 状态 */
+.btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+}
+
+/* 升级按钮中的 spinner */
+.btn-warning .spinner {
+  border-top-color: var(--text-on-primary);
+  border-right-color: var(--text-on-primary);
 }
 
 @keyframes spin {

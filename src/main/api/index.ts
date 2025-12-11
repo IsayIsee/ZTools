@@ -96,7 +96,10 @@ class APIManager {
         return { success: false, error: '功能不可用' }
       } catch (error: unknown) {
         console.error('打开开发者工具失败:', error)
-        return { success: false, error: error.message || '未知错误' }
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '未知错误'
+        }
       }
     })
 
@@ -110,7 +113,10 @@ class APIManager {
         return { success: false, error: '功能不可用' }
       } catch (error: unknown) {
         console.error('分离插件失败:', error)
-        return { success: false, error: error.message || '未知错误' }
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '未知错误'
+        }
       }
     })
   }

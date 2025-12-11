@@ -89,7 +89,10 @@ export class PluginFeatureAPI {
         event.returnValue = { success: true }
       } catch (error: unknown) {
         console.error('set-feature error:', error)
-        event.returnValue = { success: false, error: error.message }
+        event.returnValue = {
+          success: false,
+          error: error instanceof Error ? error.message : '未知错误'
+        }
       }
     })
 
