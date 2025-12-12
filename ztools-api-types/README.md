@@ -36,30 +36,30 @@ npm install @ztools-center/ztools-api-types --save-dev
 
 ```javascript
 // 默认浏览器打开网页
-window.ztools.shellOpenExternal("https://u.tools");
+window.ztools.shellOpenExternal('https://u.tools')
 
 // 在资源管理器中显示文件
-window.ztools.shellShowItemInFolder("d:\\test");
+window.ztools.shellShowItemInFolder('d:\\test')
 
 // zbrowser 网页自动化
 window.ztools.zbrowser
-  .goto("https://cn.bing.com")
-  .value("#sb_form_q", "ZTools")
-  .click("#sb_form_go")
-  .run({ width: 1000, height: 600 });
+  .goto('https://cn.bing.com')
+  .value('#sb_form_q', 'ZTools')
+  .click('#sb_form_go')
+  .run({ width: 1000, height: 600 })
 
 // 值键对方式存储数据
-window.ztools.dbStorage.setItem("key", "value");
+window.ztools.dbStorage.setItem('key', 'value')
 
 // 执行截图
 window.ztools.screenCapture((imagebase64) => {
   // 截图完的回调
-});
+})
 
 // 执行取色
 window.ztools.screenColorPick(({ hex, rgb }) => {
   // 取色完的回调
-});
+})
 ```
 
 ## `electron` 模块代码提示
@@ -73,18 +73,18 @@ window.ztools.screenColorPick(({ hex, rgb }) => {
 ```javascript
 // preload.js
 
-const { ipcRenderer } = require("electron");
+const { ipcRenderer } = require('electron')
 
 window.onMyChannel = (callback) => {
-  ipcRenderer.on("myChannel", (e, data) => {
+  ipcRenderer.on('myChannel', (e, data) => {
     callback?.({
       ...data,
-      senderId: e.senderId,
-    });
-  });
-};
+      senderId: e.senderId
+    })
+  })
+}
 
-window.ipc = ipcRenderer;
+window.ipc = ipcRenderer
 ```
 
 ## 配置文件 JSON Schema

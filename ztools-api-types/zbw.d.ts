@@ -7,8 +7,8 @@ declare module BrowserWindow {
   }
 
   interface InitOptions {
-    width?: number,
-    height?: number,
+    width?: number
+    height?: number
     webPreferences: WebPreferences
     show?: boolean
     title?: string
@@ -40,7 +40,7 @@ declare module BrowserWindow {
     options?: {
       'printer-location'?: string
       'printer-make-and-model'?: string
-      'system_driverinfo'?: string
+      system_driverinfo?: string
     }
   }
 
@@ -65,11 +65,14 @@ declare module BrowserWindow {
     disableDeviceEmulation: () => void
     enableDeviceEmulation: () => void
     executeJavaScript: <T>(code: string, userGesture?: boolean) => Promise<T>
-    findInPage: (text: string, options?: {
-      forward?: boolean
-      findNext?: boolean
-      matchCase?: boolean
-    }) => number
+    findInPage: (
+      text: string,
+      options?: {
+        forward?: boolean
+        findNext?: boolean
+        matchCase?: boolean
+      }
+    ) => number
     focus: () => void
     getBackgroundThrottling: () => boolean
     getFrameRate: () => number
@@ -83,12 +86,15 @@ declare module BrowserWindow {
      * @deprecated
      */
     incrementCapturerCount: () => any
-    insertCSS: (css: string, options?: {
-      /**
-       * @default 'author'
-       */
-      cssOrigin?: 'user' | 'author'
-    }) => Promise<string>
+    insertCSS: (
+      css: string,
+      options?: {
+        /**
+         * @default 'author'
+         */
+        cssOrigin?: 'user' | 'author'
+      }
+    ) => Promise<string>
     insertText: (text: string) => Promise<void>
     invalidate: () => void
     isAudioMuted: () => boolean
@@ -111,7 +117,10 @@ declare module BrowserWindow {
     }) => void
     paste: () => void
     pasteAndMatchStyle: () => void
-    print: (options?: Record<string, any>, callback?: (success: boolean, errorType?: string) => void) => void
+    print: (
+      options?: Record<string, any>,
+      callback?: (success: boolean, errorType?: string) => void
+    ) => void
     printToPDF: (options: Record<string, any>) => Promise<Uint8Array>
     redo: () => void
     removeInsertedCSS: (key: string) => Promise<void>
@@ -199,13 +208,15 @@ declare module BrowserWindow {
     isKiosk: () => boolean
     focusOnWebView: () => void
     blurWebView: () => void
-    capturePage: (rect?: Rectangle, options?: {
-      stayHidden?: boolean
-      stayAwake?: boolean
-    }) => Promise<NativeImage>
+    capturePage: (
+      rect?: Rectangle,
+      options?: {
+        stayHidden?: boolean
+        stayAwake?: boolean
+      }
+    ) => Promise<NativeImage>
     reload: () => void
 
     [key: string]: any
   }
 }
-
