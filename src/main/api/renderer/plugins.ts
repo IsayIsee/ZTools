@@ -211,7 +211,23 @@ export class PluginsAPI {
       console.log('新增指令列表:')
       pluginConfig.features.forEach((feature: any, index: number) => {
         console.log(`  [${index + 1}] ${feature.code} - ${feature.explain || '无说明'}`)
-        console.log(`      关键词: ${feature.cmds.join(', ')}`)
+        
+        // 格式化 cmds（区分字符串和对象）
+        const formattedCmds = feature.cmds
+          .map((cmd: any) => {
+            if (typeof cmd === 'string') {
+              return cmd
+            } else if (typeof cmd === 'object' && cmd !== null) {
+              // 对象类型的匹配指令
+              const type = cmd.type || 'unknown'
+              const label = cmd.label || type
+              return `[${type}] ${label}`
+            }
+            return String(cmd)
+          })
+          .join(', ')
+        
+        console.log(`      关键词: ${formattedCmds}`)
       })
       console.log('==================\n')
 
@@ -311,7 +327,23 @@ export class PluginsAPI {
       console.log('新增指令列表:')
       pluginConfig.features.forEach((feature: any, index: number) => {
         console.log(`  [${index + 1}] ${feature.code} - ${feature.explain || '无说明'}`)
-        console.log(`      关键词: ${feature.cmds.join(', ')}`)
+        
+        // 格式化 cmds（区分字符串和对象）
+        const formattedCmds = feature.cmds
+          .map((cmd: any) => {
+            if (typeof cmd === 'string') {
+              return cmd
+            } else if (typeof cmd === 'object' && cmd !== null) {
+              // 对象类型的匹配指令
+              const type = cmd.type || 'unknown'
+              const label = cmd.label || type
+              return `[${type}] ${label}`
+            }
+            return String(cmd)
+          })
+          .join(', ')
+        
+        console.log(`      关键词: ${formattedCmds}`)
       })
       console.log('=========================\n')
 
