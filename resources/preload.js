@@ -290,6 +290,8 @@ window.ztools = {
   getWebContentsId: () => electron.ipcRenderer.sendSync('get-web-contents-id'),
   // 使用系统默认程序打开 URL
   shellOpenExternal: (url) => electron.ipcRenderer.sendSync('shell-open-external', url),
+  // 使用系统默认方式打开文件或文件夹
+  shellOpenPath: (fullPath) => electron.ipcRenderer.sendSync('shell-open-path', fullPath),
   // 在文件管理器中显示文件
   shellShowItemInFolder: (fullPath) =>
     electron.ipcRenderer.sendSync('shell-show-item-in-folder', fullPath),

@@ -33,6 +33,23 @@ export class PluginShellAPI {
       }
       event.returnValue = undefined
     })
+
+    // 使用系统默认方式打开文件或文件夹
+    ipcMain.on('shell-open-path', async (event, fullPath: string) => {
+      try {
+        const errorMessage = await shell.openPath(fullPath)
+        event.returnValue = {
+          success: !errorMessage,
+          error: errorMessage || undefined
+        }
+      } catch (error: unknown) {
+        console.error('使用系统默认方式打开文件失败:', error)
+        event.returnValue = {
+          success: false,
+          error: error instanceof Error ? error.message : '未知错误'
+        }
+      }
+    })
   }
 }
 
