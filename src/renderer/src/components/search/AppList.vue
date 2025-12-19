@@ -20,10 +20,6 @@
           @click="$emit('select', app)"
           @contextmenu.prevent="$emit('contextmenu', app)"
         >
-          <!-- Emoji 图标 (单个字符) -->
-          <div v-if="app.icon && app.icon.length <= 2" class="app-icon-emoji">
-            {{ app.icon }}
-          </div>
           <!-- 图片图标 (base64) -->
           <!-- 特殊图标使用渐变背景 -->
           <div
@@ -60,10 +56,6 @@
         @click="$emit('select', app)"
         @contextmenu.prevent="$emit('contextmenu', app)"
       >
-        <!-- Emoji 图标 (单个字符) -->
-        <div v-if="app.icon && app.icon.length <= 2" class="app-icon-emoji">
-          {{ app.icon }}
-        </div>
         <!-- 图片图标 (base64) -->
         <!-- 特殊图标使用渐变背景 -->
         <div
@@ -267,19 +259,6 @@ defineExpose({
   height: 32px;
   margin-bottom: 4px;
   border-radius: 6px;
-  flex-shrink: 0;
-}
-
-/* 自适应图标样式由全局 CSS 处理（style.css） */
-
-.app-icon-emoji {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
   flex-shrink: 0;
 }
 

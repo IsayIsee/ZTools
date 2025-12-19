@@ -12,6 +12,7 @@
             v-for="pluginData in pluginDataList"
             :key="pluginData.pluginName"
             class="card plugin-card"
+            @click="viewPluginDocs(pluginData.pluginName)"
           >
             <img
               v-if="pluginData.logo"
@@ -34,7 +35,6 @@
             <button
               class="icon-btn"
               title="查看文档"
-              @click="viewPluginDocs(pluginData.pluginName)"
             >
               <Icon name="search" :size="14" />
             </button>
@@ -354,7 +354,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 14px 16px;
-  cursor: default;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
