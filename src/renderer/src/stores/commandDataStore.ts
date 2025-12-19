@@ -71,8 +71,6 @@ export interface Command {
   // 系统设置字段（新增）
   settingUri?: string // ms-settings URI
   category?: string // 分类（用于分组显示）
-  // 特殊图标字段
-  needsIconFilter?: boolean // 是否需要图标滤镜（用于自适应颜色）
 }
 
 interface MatchInfo {
@@ -104,8 +102,7 @@ export const useCommandDataStore = defineStore('commandData', () => {
       name: '上次匹配',
       icon: arrowBackwardIcon,
       type: 'builtin',
-      cmdType: 'text',
-      needsIconFilter: true // 需要颜色自适应
+      cmdType: 'text'
     },
     'prefix:baidu-search:': {
       name: '百度搜索',
@@ -113,8 +110,7 @@ export const useCommandDataStore = defineStore('commandData', () => {
       type: 'builtin'
     },
     'subType:system-setting': {
-      icon: settingsFillIcon,
-      needsIconFilter: true // 需要颜色自适应
+      icon: settingsFillIcon
     }
   }
 

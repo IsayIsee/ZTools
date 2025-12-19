@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
-import clipboardManager from '../../clipboardManager.js'
-import windowManager from '../../windowManager.js'
-import { WindowManager } from '../../core/native/index.js'
+import { WindowManager } from '../../core/native'
+import clipboardManager from '../../managers/clipboardManager'
+import windowManager from '../../managers/windowManager'
 
 /**
  * 剪贴板历史管理API - 主程序和插件共享

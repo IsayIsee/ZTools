@@ -6,8 +6,9 @@ import api from './api/index'
 import appWatcher from './appWatcher'
 import detachedWindowManager from './core/detachedWindowManager'
 import { loadInternalPlugins } from './core/internalPluginLoader'
-import pluginManager from './pluginManager'
-import windowManager from './windowManager'
+
+import pluginManager from './managers/pluginManager'
+import windowManager from './managers/windowManager'
 
 // 配置 electron-log
 log.transports.file.level = 'debug'

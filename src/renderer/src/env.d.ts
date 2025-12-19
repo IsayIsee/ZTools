@@ -35,6 +35,7 @@ declare global {
       resizeWindow: (height: number) => void
       getWindowPosition: () => Promise<{ x: number; y: number }>
       setWindowPosition: (x: number, y: number) => void
+      setWindowSizeLock: (lock: boolean) => void
       setWindowOpacity: (opacity: number) => void
       setTrayIconVisible: (visible: boolean) => Promise<void>
       setLaunchAtLogin: (enable: boolean) => Promise<void>
@@ -44,6 +45,12 @@ declare global {
       copyToClipboard: (text: string) => Promise<void>
       openTerminal: (path: string) => Promise<void>
       getFinderPath: () => Promise<string | null>
+      analyzeImage: (imagePath: string) => Promise<{
+        isSimpleIcon: boolean
+        mainColor: string | null
+        isDark: boolean
+        needsAdaptation: boolean
+      }>
       getFrontmostApp: () => Promise<{
         name: string
         bundleId: string
@@ -234,4 +241,5 @@ declare global {
   }
 }
 
-export {}
+export { }
+

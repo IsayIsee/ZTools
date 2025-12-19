@@ -1,14 +1,14 @@
 import { BrowserWindow, session, WebContents, WebContentsView } from 'electron'
 import fsSync from 'fs'
 import path from 'path'
-import hideWindowHtml from '../../resources/hideWindow.html?asset'
-import api from './api/index.js'
+import hideWindowHtml from '../../../resources/hideWindow.html?asset'
 
-import mainPreload from '../../resources/preload.js?asset'
-import detachedWindowManager from './core/detachedWindowManager.js'
-import { GLOBAL_SCROLLBAR_CSS } from './core/globalStyles.js'
-import { isInternalPlugin } from './core/internalPlugins'
-import pluginWindowManager from './core/pluginWindowManager.js'
+import mainPreload from '../../../resources/preload.js?asset'
+import api from '../api'
+import detachedWindowManager from '../core/detachedWindowManager'
+import { GLOBAL_SCROLLBAR_CSS } from '../core/globalStyles'
+import { isInternalPlugin } from '../core/internalPlugins'
+import pluginWindowManager from '../core/pluginWindowManager'
 
 console.log('mainPreload', mainPreload)
 

@@ -1,11 +1,13 @@
-import { ipcMain } from 'electron'
-import windowManager from '../../windowManager.js'
+import { ipcMain } from 'electron';
+import { MAX_WINDOW_HEIGHT, WINDOW_INITIAL_HEIGHT } from '../../common/constants.js';
+import windowManager from '../../managers/windowManager.js';
 
 /**
  * 窗口管理API - 主程序专用
  */
 export class WindowAPI {
   private mainWindow: Electron.BrowserWindow | null = null
+  private lockedSize: { width: number; height: number } | null = null
 
   public init(mainWindow: Electron.BrowserWindow): void {
     this.mainWindow = mainWindow
@@ -20,6 +22,25 @@ export class WindowAPI {
     ipcMain.on('set-window-position', (_event, x: number, y: number) =>
       this.setWindowPosition(x, y)
     )
+    // 拖动控制：锁定/解锁窗口尺寸
+    ipcMain.on('set-window-size-lock', (_event, lock: boolean) => {
+      if (!this.mainWindow) return
+
+      if (lock) {
+        // 锁定：记录当前尺寸
+        const [width, height] = this.mainWindow.getSize()
+        this.lockedSize = { width, height }
+      } else {
+        // 解锁：验证并恢复尺寸
+        if (this.lockedSize) {
+          const [width, height] = this.mainWindow.getSize()
+          if (width !== this.lockedSize.width || height !== this.lockedSize.height) {
+            this.mainWindow.setSize(this.lockedSize.width, this.lockedSize.height)
+          }
+          this.lockedSize = null
+        }
+      }
+    })
     ipcMain.on('set-window-opacity', (_event, opacity: number) => this.setWindowOpacity(opacity))
     ipcMain.handle('set-tray-icon-visible', (_event, visible: boolean) =>
       this.setTrayIconVisible(visible)
@@ -49,10 +70,9 @@ export class WindowAPI {
 
   public resizeWindow(height: number): void {
     if (this.mainWindow) {
-      // console.log('收到调整窗口高度请求:', height)
       const [width] = this.mainWindow.getSize()
-      // 限制高度范围: 最小 59px, 最大 600px
-      const newHeight = Math.max(59, Math.min(height, 600))
+      // 限制高度范围: 最小初始高度, 最大高度
+      const newHeight = Math.max(WINDOW_INITIAL_HEIGHT, Math.min(height, MAX_WINDOW_HEIGHT))
 
       // 临时启用 resizable 以允许代码调整大小
       this.mainWindow.setResizable(true)
@@ -71,7 +91,15 @@ export class WindowAPI {
   }
 
   public setWindowPosition(x: number, y: number): void {
-    if (this.mainWindow) {
+    if (this.mainWindow && this.lockedSize) {
+      // 拖动时强制保持锁定的尺寸
+      this.mainWindow.setBounds({
+        x: Math.round(x),
+        y: Math.round(y),
+        width: this.lockedSize.width,
+        height: this.lockedSize.height
+      })
+    } else if (this.mainWindow) {
       this.mainWindow.setPosition(x, y)
     }
   }

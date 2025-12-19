@@ -3,6 +3,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 // 共享API（主程序和插件都能用）
 import clipboardAPI from './shared/clipboard'
 import databaseAPI from './shared/database'
+
 import updaterAPI from './updater'
 
 // 主程序渲染进程专用API
@@ -14,6 +15,7 @@ import { systemSettingsAPI } from './renderer/systemSettings'
 import windowAPI from './renderer/window'
 
 // 插件专用API
+import windowManager from '../managers/windowManager'
 import pluginClipboardAPI from './plugin/clipboard'
 import pluginDeviceAPI from './plugin/device'
 import pluginDialogAPI from './plugin/dialog'
@@ -27,6 +29,7 @@ import pluginScreenAPI from './plugin/screen'
 import pluginShellAPI from './plugin/shell'
 import pluginUIAPI from './plugin/ui'
 import pluginWindowAPI from './plugin/window'
+import { setupImageAnalysisAPI } from './shared/imageAnalysis'
 
 /**
  * API管理器 - 统一初始化和管理所有API模块
@@ -45,6 +48,7 @@ class APIManager {
     // 初始化共享API
     databaseAPI.init(pluginManager)
     clipboardAPI.init()
+    setupImageAnalysisAPI()
 
     // 初始化主程序API
     appsAPI.init(mainWindow, pluginManager)
@@ -235,9 +239,7 @@ class APIManager {
       }
       console.log(`启动插件:`, launchOptions)
 
-      // 导入 windowManager（避免循环依赖，在运行时导入）
-      const windowManager = await import('../windowManager.js')
-      windowManager.default.refreshPreviousActiveWindow()
+      windowManager.refreshPreviousActiveWindow()
 
       setTimeout(() => {
         this.mainWindow?.show()
