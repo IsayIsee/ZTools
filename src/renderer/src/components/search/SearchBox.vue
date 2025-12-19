@@ -660,6 +660,39 @@ onMounted(() => {
         console.error('分离插件失败:', error)
         alert(`分离插件失败: ${error.message || '未知错误'}`)
       }
+    } else if (command === 'toggle-auto-kill') {
+      try {
+        // 读取当前配置
+        let outKillPlugins: string[] = []
+        try {
+          const data = await window.ztools.dbGet('outKillPlugin')
+          if (data && Array.isArray(data)) {
+            outKillPlugins = data
+          }
+        } catch (error) {
+          // 配置不存在，使用空数组
+          console.debug('未找到outKillPlugin配置', error)
+        }
+
+        const currentPluginName = windowStore.currentPlugin!.name
+        const index = outKillPlugins.indexOf(currentPluginName)
+
+        if (index !== -1) {
+          // 已存在，移除
+          outKillPlugins.splice(index, 1)
+        } else {
+          // 不存在，添加
+          outKillPlugins.push(currentPluginName)
+        }
+
+        // 保存到数据库
+        await window.ztools.dbPut('outKillPlugin', outKillPlugins)
+
+        console.log('已更新 outKillPlugin 配置:', outKillPlugins)
+      } catch (error: any) {
+        console.error('切换自动结束配置失败:', error)
+        alert(`操作失败: ${error.message || '未知错误'}`)
+      }
     }
   })
 })
@@ -673,10 +706,32 @@ async function handleSettingsClick(): Promise<void> {
   // 只有在插件视图真正显示时才显示插件菜单
   if (props.currentView === 'plugin' && windowStore.currentPlugin) {
     console.log('显示插件菜单')
+
+    // 从数据库读取配置
+    let outKillPlugins: string[] = []
+    try {
+      const data = await window.ztools.dbGet('outKillPlugin')
+      if (data && Array.isArray(data)) {
+        outKillPlugins = data
+      }
+    } catch (error) {
+      console.log('读取 outKillPlugin 配置失败（可能不存在）:', error)
+    }
+
+    // 检查当前插件是否在列表中
+    const currentPluginName = windowStore.currentPlugin.name
+    const isAutoKill = outKillPlugins.includes(currentPluginName)
+
     const menuItems = [
       { id: 'detach-plugin', label: '分离到独立窗口 (⌘+D)' },
       { id: 'open-devtools', label: '打开开发者工具' },
-      { id: 'kill-plugin', label: '结束运行' }
+      { id: 'kill-plugin', label: '结束运行' },
+      {
+        id: 'toggle-auto-kill',
+        label: '退出到后台立即结束运行',
+        type: 'checkbox',
+        checked: isAutoKill
+      }
     ]
 
     await window.ztools.showContextMenu(menuItems)
