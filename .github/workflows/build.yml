@@ -22,6 +22,11 @@ jobs:
       - name: Check out git repository
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -31,22 +36,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: 'pnpm'
+
+      - name: Install plugin dependencies
+        run: |
+          cd internal-plugins/setting
+          npm install
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
 
       # macOS 构建
       - name: Build and Package (macOS)
         if: matrix.os == 'macos-latest'
-        run: npm run build:mac
+        run: pnpm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Windows 构建
       - name: Build and Package (Windows)
         if: matrix.os == 'windows-latest'
-        run: npm run build:win
+        run: pnpm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
