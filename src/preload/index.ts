@@ -31,6 +31,7 @@ const api = {
   copyToClipboard: (text: string) => ipcRenderer.invoke('copy-to-clipboard', text),
   openTerminal: (path: string) => ipcRenderer.invoke('open-terminal', path),
   getFinderPath: () => ipcRenderer.invoke('get-finder-path'),
+  analyzeImage: (imagePath: string) => ipcRenderer.invoke('analyze-image', imagePath),
   getLastCopiedContent: (timeLimit?: number) =>
     ipcRenderer.invoke('get-last-copied-content', timeLimit),
   getFrontmostApp: () => ipcRenderer.invoke('get-frontmost-app'),

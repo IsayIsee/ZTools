@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import lmdbInstance from '../../core/lmdb/lmdbInstance'
-import windowManager from '../../windowManager'
+import windowManager from '../../managers/windowManager'
 
 interface DynamicFeature {
   code: string

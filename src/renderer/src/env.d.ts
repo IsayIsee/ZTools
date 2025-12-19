@@ -45,6 +45,12 @@ declare global {
       copyToClipboard: (text: string) => Promise<void>
       openTerminal: (path: string) => Promise<void>
       getFinderPath: () => Promise<string | null>
+      analyzeImage: (imagePath: string) => Promise<{
+        isSimpleIcon: boolean
+        mainColor: string | null
+        isDark: boolean
+        needsAdaptation: boolean
+      }>
       getFrontmostApp: () => Promise<{
         name: string
         bundleId: string

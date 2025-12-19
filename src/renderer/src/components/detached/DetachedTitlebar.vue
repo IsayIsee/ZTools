@@ -4,7 +4,7 @@
 
     <!-- 插件图标 -->
     <div class="plugin-info" @dblclick="handleDblClick">
-      <img v-if="pluginLogo" :src="pluginLogo" class="plugin-logo" alt="Plugin Logo" />
+      <AdaptiveIcon v-if="pluginLogo" :src="pluginLogo" class="plugin-logo" alt="Plugin Logo" />
     </div>
 
     <!-- 搜索栏 -->
@@ -88,6 +88,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import AdaptiveIcon from '../common/AdaptiveIcon.vue'
 
 const platform = ref<'darwin' | 'win32'>('darwin')
 const pluginName = ref('Plugin')

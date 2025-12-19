@@ -107,14 +107,11 @@
         <UpdateIcon />
       </div>
       <!-- 头像按钮（无更新或插件模式时显示） -->
-      <img
+      <AdaptiveIcon
         v-else
         :src="avatarUrl"
-        :class="[
-          'search-btn',
-          { 'default-avatar': isDefaultAvatar },
-          { 'plugin-logo': windowStore.currentPlugin?.logo }
-        ]"
+        :force-adaptive="isDefaultAvatar"
+        :class="['search-btn', { 'plugin-logo': windowStore.currentPlugin?.logo }]"
         draggable="false"
         @click="handleSettingsClick"
       />
@@ -125,6 +122,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { DEFAULT_AVATAR, useWindowStore } from '../../stores/windowStore'
+import AdaptiveIcon from '../common/AdaptiveIcon.vue'
 import UpdateIcon from './UpdateIcon.vue'
 
 // FileItem 接口（从剪贴板管理器返回的格式）
@@ -1066,12 +1064,5 @@ defineExpose({
 
 .search-btn:active {
   transform: scale(0.95);
-}
-
-/* 暗色模式下默认头像反色 */
-@media (prefers-color-scheme: dark) {
-  .search-btn.default-avatar {
-    filter: invert(1);
-  }
 }
 </style>

@@ -1,13 +1,14 @@
-import { app, clipboard, nativeImage } from 'electron'
 import { createHash } from 'crypto'
-import path from 'path'
+import { app, clipboard, nativeImage } from 'electron'
 import { promises as fs } from 'fs'
-import lmdbInstance from './core/lmdb/lmdbInstance'
-import { v4 as uuidv4 } from 'uuid'
-import plist from 'simple-plist'
-import pluginManager from './pluginManager'
-import { ClipboardMonitor, WindowMonitor, WindowManager } from './core/native'
+import path from 'path'
+
 import os from 'os'
+import plist from 'simple-plist'
+import { v4 as uuidv4 } from 'uuid'
+import lmdbInstance from '../core/lmdb/lmdbInstance'
+import pluginManager from './pluginManager'
+import ClipboardMonitor, { WindowMonitor, WindowManager } from '../core/native'
 // 剪贴板类型
 type ClipboardType = 'text' | 'image' | 'file'
 

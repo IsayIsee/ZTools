@@ -1,6 +1,6 @@
 import { ipcMain, webContents } from 'electron'
 import pluginWindowManager from '../../core/pluginWindowManager.js'
-import windowManager from '../../windowManager.js'
+import windowManager from '../../managers/windowManager.js'
 
 /**
  * 插件独立窗口管理API - 插件专用

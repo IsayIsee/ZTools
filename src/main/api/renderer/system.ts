@@ -1,8 +1,8 @@
 import { app, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
-import clipboardManager from '../../clipboardManager.js'
-import appleScriptHelper from '../../utils/appleScriptHelper.js'
+import clipboardManager from '../../managers/clipboardManager'
+import appleScriptHelper from '../../utils/appleScriptHelper'
 
 // 头像目录
 const AVATAR_DIR = path.join(app.getPath('userData'), 'avatar')

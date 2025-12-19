@@ -10,11 +10,13 @@ import {
   Tray
 } from 'electron'
 import path from 'path'
-import trayIconLight from '../../resources/icons/trayTemplate@2x-light.png?asset'
-import trayIcon from '../../resources/icons/trayTemplate@2x.png?asset'
-import api from './api/index.js'
+import trayIconLight from '../../../resources/icons/trayTemplate@2x-light.png?asset'
+import trayIcon from '../../../resources/icons/trayTemplate@2x.png?asset'
+
+import api from '../api'
 import clipboardManager from './clipboardManager'
-import { MAX_WINDOW_HEIGHT, WINDOW_INITIAL_HEIGHT, WINDOW_WIDTH } from './common/constants.js'
+
+import { MAX_WINDOW_HEIGHT, WINDOW_INITIAL_HEIGHT, WINDOW_WIDTH } from '../common/constants'
 import pluginManager from './pluginManager'
 
 /**

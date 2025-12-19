@@ -21,15 +21,8 @@
           @contextmenu.prevent="$emit('contextmenu', app)"
         >
           <!-- 图片图标 (base64) -->
-          <!-- 特殊图标使用渐变背景 -->
-          <div
-            v-if="app.icon && !hasIconError(app) && app.needsIconFilter"
-            class="app-icon adaptive-icon"
-            :style="{ '--icon-url': `url(${app.icon})` }"
-          ></div>
-          <!-- 普通图标 -->
-          <img
-            v-else-if="app.icon && !hasIconError(app)"
+          <AdaptiveIcon
+            v-if="app.icon && !hasIconError(app)"
             :src="app.icon"
             class="app-icon"
             draggable="false"
@@ -57,15 +50,8 @@
         @contextmenu.prevent="$emit('contextmenu', app)"
       >
         <!-- 图片图标 (base64) -->
-        <!-- 特殊图标使用渐变背景 -->
-        <div
-          v-if="app.icon && !hasIconError(app) && app.needsIconFilter"
-          class="app-icon adaptive-icon"
-          :style="{ '--icon-url': `url(${app.icon})` }"
-        ></div>
-        <!-- 普通图标 -->
-        <img
-          v-else-if="app.icon && !hasIconError(app)"
+        <AdaptiveIcon
+          v-if="app.icon && !hasIconError(app)"
           :src="app.icon"
           class="app-icon"
           draggable="false"
@@ -90,6 +76,7 @@ import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vu
 import Draggable from 'vuedraggable'
 import type { Command } from '../../stores/commandDataStore'
 import { highlightMatch } from '../../utils/highlight'
+import AdaptiveIcon from '../common/AdaptiveIcon.vue'
 
 const props = withDefaults(
   defineProps<{
