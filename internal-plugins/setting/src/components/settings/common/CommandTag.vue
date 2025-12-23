@@ -9,7 +9,7 @@
 
       <!-- 正则匹配 -->
       <template v-else-if="command.type === 'regex'">
-        <span class="tag-badge">{{ command.match?.match }}</span>
+        <span class="tag-badge">{{ command.name }}</span>
         <Icon name="regex" :size="12" class="tag-icon" />
       </template>
 
