@@ -82,6 +82,9 @@ const api = {
   onPluginOpened: (callback: (plugin: { name: string; logo: string; path: string }) => void) => {
     ipcRenderer.on('plugin-opened', (_event, plugin) => callback(plugin))
   },
+  onPluginLoaded: (callback: (plugin: { name: string; path: string }) => void) => {
+    ipcRenderer.on('plugin-loaded', (_event, plugin) => callback(plugin))
+  },
   onPluginClosed: (callback: () => void) => {
     ipcRenderer.on('plugin-closed', callback)
   },

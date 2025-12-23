@@ -5,7 +5,7 @@ import hideWindowHtml from '../../../resources/hideWindow.html?asset'
 
 import mainPreload from '../../../resources/preload.js?asset'
 import api from '../api'
-import detachedWindowManager from '../core/detachedWindowManager'
+import detachedWindowManager, { DETACHED_TITLEBAR_HEIGHT } from '../core/detachedWindowManager'
 import { GLOBAL_SCROLLBAR_CSS } from '../core/globalStyles'
 import { isInternalPlugin } from '../core/internalPlugins'
 import pluginWindowManager from '../core/pluginWindowManager'
@@ -89,6 +89,12 @@ class PluginManager {
           logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
           path: pluginPath,
           subInputPlaceholder: cached.subInputPlaceholder || '搜索'
+        })
+
+        // 缓存视图已经加载完成，直接通知渲染进程加载完成
+        this.mainWindow?.webContents.send('plugin-loaded', {
+          name: pluginConfig.name,
+          path: pluginPath
         })
       } catch (error) {
         console.error('读取插件配置失败:', error)
@@ -205,6 +211,8 @@ class PluginManager {
       // 获取主窗口大小
       const [windowWidth] = this.mainWindow.getSize()
 
+      let initialViewHeight: number | null = null
+
       if (isConfigHeadless) {
         // 无界面插件 (Config)，初始设置为最小高度
         this.pluginView.setBounds({ x: 0, y: 59, width: windowWidth, height: 0 })
@@ -213,16 +221,17 @@ class PluginManager {
         // 有界面插件，设置在主窗口搜索框内容的下方
         const mainContentHeight = 59
         const viewHeight = 600 - mainContentHeight
+        initialViewHeight = viewHeight
 
         this.pluginView.setBounds({
           x: 0,
           y: mainContentHeight,
           width: windowWidth,
-          height: viewHeight
+          height: 0
         })
 
-        // 调整窗口高度为固定 600px
-        api.resizeWindow(600)
+        // 初始只显示搜索框高度，待插件加载完成后恢复
+        api.resizeWindow(mainContentHeight)
       }
 
       // 缓存新创建的视图 (提前缓存，以便 setSubInput 能找到)
@@ -254,6 +263,17 @@ class PluginManager {
         view.webContents.insertCSS(GLOBAL_SCROLLBAR_CSS)
 
         this.processPluginMode(pluginPath, featureCode, view)
+
+        // 通知渲染进程插件页面已加载完成
+        this.mainWindow?.webContents.send('plugin-loaded', {
+          name: pluginConfig.name,
+          path: pluginPath
+        })
+
+        // 插件加载完成后恢复视图高度
+        if (initialViewHeight !== null) {
+          this.setExpendHeight(initialViewHeight, true)
+        }
       })
 
       console.log('Plugin WebContentsView 已创建并缓存')
@@ -686,6 +706,34 @@ class PluginManager {
   }
 
   /**
+   * 读取分离窗口的上次尺寸（按插件名记录）
+   */
+  private async getStoredDetachedSize(
+    pluginName: string
+  ): Promise<{ width: number; height: number } | null> {
+    try {
+      const sizes = await api.dbGet('detachedWindowSizes')
+      if (sizes && typeof sizes === 'object' && !Array.isArray(sizes) && sizes[pluginName]) {
+        const rawSize = sizes[pluginName]
+        const width = Number(rawSize?.width)
+        const height = Number(rawSize?.height)
+
+        if (!Number.isFinite(width) || !Number.isFinite(height)) {
+          return null
+        }
+
+        const clampedWidth = Math.max(400, Math.round(width))
+        const clampedHeight = Math.max(300 - DETACHED_TITLEBAR_HEIGHT, Math.round(height))
+        return { width: clampedWidth, height: clampedHeight }
+      }
+    } catch (error) {
+      console.error('读取分离窗口尺寸失败:', error)
+    }
+
+    return null
+  }
+
+  /**
    * 直接在独立窗口中创建插件（用于自动分离模式）
    * @param pluginPath 插件路径
    * @param featureCode 功能代码
@@ -768,9 +816,12 @@ class PluginManager {
         })
       })
 
-      // 获取默认窗口大小
-      const windowWidth = 800
-      const viewHeight = 600 - 59
+      const storedSize = await this.getStoredDetachedSize(pluginConfig.name)
+      const defaultViewHeight = 600 - DETACHED_TITLEBAR_HEIGHT
+
+      // 获取默认窗口大小（若有历史记录则优先使用）
+      const windowWidth = storedSize?.width ?? 800
+      const viewHeight = storedSize?.height ?? defaultViewHeight
 
       // 创建独立窗口
       const detachedWindow = detachedWindowManager.createDetachedWindow(
@@ -838,9 +889,12 @@ class PluginManager {
       const pluginJsonPath = path.join(this.currentPluginPath, 'plugin.json')
       const pluginConfig = JSON.parse(fsSync.readFileSync(pluginJsonPath, 'utf-8'))
 
-      // 获取当前窗口大小
-      const [windowWidth] = this.mainWindow.getSize()
-      const viewHeight = cached.height || 600 - 59
+      const storedSize = await this.getStoredDetachedSize(pluginConfig.name)
+      const defaultViewHeight = 600 - DETACHED_TITLEBAR_HEIGHT
+
+      // 若存在历史尺寸则优先使用
+      const windowWidth = storedSize?.width ?? 800
+      const viewHeight = storedSize?.height ?? cached.height ?? defaultViewHeight
 
       // 使用新的分离窗口管理器创建窗口（使用缓存的搜索框状态）
       const detachedWindow = detachedWindowManager.createDetachedWindow(

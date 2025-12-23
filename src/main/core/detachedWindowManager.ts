@@ -2,10 +2,16 @@ import { app, BrowserWindow, ipcMain, WebContentsView } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { v4 as uuidv4 } from 'uuid'
+import databaseAPI from '../api/shared/database'
 import { GLOBAL_SCROLLBAR_CSS } from './globalStyles.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+export const DETACHED_TITLEBAR_HEIGHT = 52
+const MIN_WINDOW_WIDTH = 400
+const MIN_WINDOW_HEIGHT = 300
+const MIN_VIEW_HEIGHT = MIN_WINDOW_HEIGHT - DETACHED_TITLEBAR_HEIGHT
 
 /**
  * 分离窗口信息
@@ -24,6 +30,72 @@ interface DetachedWindowInfo {
  */
 class DetachedWindowManager {
   private detachedWindowMap: Map<string, DetachedWindowInfo> = new Map()
+  private resizeSaveTimers: Map<string, NodeJS.Timeout> = new Map()
+  private lastSavedSizeByPlugin: Map<string, { width: number; height: number }> = new Map()
+
+  /**
+   * 将分离窗口尺寸持久化到数据库（按插件名归档）
+   */
+  private async persistWindowSize(
+    pluginName: string,
+    width: number,
+    viewHeight: number
+  ): Promise<void> {
+    try {
+      const normalizedWidth = Math.max(MIN_WINDOW_WIDTH, Math.round(width))
+      const normalizedHeight = Math.max(MIN_VIEW_HEIGHT, Math.round(viewHeight))
+
+      const lastSaved = this.lastSavedSizeByPlugin.get(pluginName)
+      if (
+        lastSaved &&
+        lastSaved.width === normalizedWidth &&
+        lastSaved.height === normalizedHeight
+      ) {
+        return
+      }
+
+      const existing = (await databaseAPI.dbGet('detachedWindowSizes')) || {}
+      const next = {
+        ...(typeof existing === 'object' && existing !== null ? existing : {}),
+        [pluginName]: {
+          width: normalizedWidth,
+          height: normalizedHeight
+        }
+      }
+
+      await databaseAPI.dbPut('detachedWindowSizes', next)
+      this.lastSavedSizeByPlugin.set(pluginName, {
+        width: normalizedWidth,
+        height: normalizedHeight
+      })
+    } catch (error) {
+      console.error('保存分离窗口尺寸失败:', error)
+    }
+  }
+
+  /**
+   * 防抖保存尺寸，避免频繁写入
+   */
+  private schedulePersistWindowSize(
+    windowId: string,
+    pluginName: string,
+    width: number,
+    viewHeight: number
+  ): void {
+    const existingTimer = this.resizeSaveTimers.get(windowId)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+    }
+
+    const timer = setTimeout(() => {
+      this.persistWindowSize(pluginName, width, viewHeight).catch((error) => {
+        console.error('保存分离窗口尺寸时出错:', error)
+      })
+      this.resizeSaveTimers.delete(windowId)
+    }, 300)
+
+    this.resizeSaveTimers.set(windowId, timer)
+  }
 
   /**
    * 创建分离的插件窗口（带自定义标题栏）
@@ -44,14 +116,11 @@ class DetachedWindowManager {
     try {
       const windowId = uuidv4()
 
-      // 标题栏高度
-      const titlebarHeight = 52
-
       // 创建窗口（macOS 和 Windows 都使用无边框，macOS 保留交通灯）
       const isMac = process.platform === 'darwin'
       const win = new BrowserWindow({
         width: options.width,
-        height: options.height + titlebarHeight,
+        height: options.height + DETACHED_TITLEBAR_HEIGHT,
         title: options.title,
         frame: false, // 两个平台都无边框
         titleBarStyle: isMac ? 'hiddenInset' : undefined, // macOS 保留交通灯按钮
@@ -98,9 +167,9 @@ class DetachedWindowManager {
         const bounds = win.getContentBounds()
         pluginView.setBounds({
           x: 0,
-          y: titlebarHeight,
+          y: DETACHED_TITLEBAR_HEIGHT,
           width: bounds.width,
-          height: bounds.height - titlebarHeight
+          height: bounds.height - DETACHED_TITLEBAR_HEIGHT
         })
         win.contentView.addChildView(pluginView)
       })
@@ -112,10 +181,18 @@ class DetachedWindowManager {
           // 只需要更新插件视图大小（标题栏由窗口自动处理）
           pluginView.setBounds({
             x: 0,
-            y: titlebarHeight,
+            y: DETACHED_TITLEBAR_HEIGHT,
             width: newBounds.width,
-            height: newBounds.height - titlebarHeight
+            height: newBounds.height - DETACHED_TITLEBAR_HEIGHT
           })
+
+          // 持久化用户调整后的窗口尺寸（按插件名记录）
+          this.schedulePersistWindowSize(
+            windowId,
+            pluginName,
+            newBounds.width,
+            newBounds.height - DETACHED_TITLEBAR_HEIGHT
+          )
         }
       })
 
@@ -132,6 +209,11 @@ class DetachedWindowManager {
       // 监听窗口关闭
       win.on('closed', () => {
         this.detachedWindowMap.delete(windowId)
+        const timer = this.resizeSaveTimers.get(windowId)
+        if (timer) {
+          clearTimeout(timer)
+          this.resizeSaveTimers.delete(windowId)
+        }
         // 销毁插件视图的 webContents
         if (!pluginView.webContents.isDestroyed()) {
           pluginView.webContents.close()

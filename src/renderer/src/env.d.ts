@@ -110,6 +110,7 @@ declare global {
       onPluginOpened: (
         callback: (plugin: { name: string; logo: string; path: string }) => void
       ) => void
+      onPluginLoaded: (callback: (plugin: { name: string; path: string }) => void) => void
       onPluginClosed: (callback: () => void) => void
       onPluginsChanged: (callback: () => void) => void
       onAppsChanged: (callback: () => void) => void

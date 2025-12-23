@@ -107,14 +107,20 @@
         <UpdateIcon />
       </div>
       <!-- 头像按钮（无更新或插件模式时显示） -->
-      <AdaptiveIcon
+      <div
         v-else
-        :src="avatarUrl"
-        :force-adaptive="isDefaultAvatar"
-        :class="['search-btn', { 'plugin-logo': windowStore.currentPlugin?.logo }]"
-        draggable="false"
+        class="avatar-wrapper"
+        :class="{ loading: isPluginLoading }"
         @click="handleSettingsClick"
-      />
+      >
+        <AdaptiveIcon
+          :src="avatarUrl"
+          :force-adaptive="isDefaultAvatar"
+          :class="['search-btn', { 'plugin-logo': windowStore.currentPlugin?.logo }]"
+          draggable="false"
+        />
+        <div v-if="isPluginLoading" class="avatar-spinner"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -189,6 +195,8 @@ const isDefaultAvatar = computed(() => {
   // 这样在打包后路径被处理时也能正确判断
   return avatarUrl.value === DEFAULT_AVATAR
 })
+
+const isPluginLoading = computed(() => windowStore.pluginLoading)
 
 // 截断显示的粘贴文本（从中间截断，显示头尾）
 const truncatedPastedText = computed(() => {
@@ -1116,5 +1124,36 @@ defineExpose({
 
 .search-btn:active {
   transform: scale(0.95);
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-wrapper.loading .search-btn {
+  opacity: 0.9;
+}
+
+.avatar-spinner {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--primary-color, #3b82f6);
+  animation: avatar-spin 0.8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes avatar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -372,6 +372,7 @@ onMounted(async () => {
     searchQuery.value = ''
     // 清空当前插件信息
     windowStore.updateCurrentPlugin(null)
+    windowStore.setPluginLoading(false)
     // 等待 DOM 更新后调整窗口高度并聚焦搜索框
     nextTick(() => {
       updateWindowHeight()
@@ -383,16 +384,24 @@ onMounted(async () => {
   window.ztools.onPluginOpened((plugin) => {
     console.log('插件已打开:', plugin)
     windowStore.updateCurrentPlugin(plugin)
+    windowStore.setPluginLoading(true)
     // 清除所有粘贴内容
     pastedImageData.value = null
     pastedFilesData.value = null
     pastedTextData.value = null
   })
 
+  // 监听插件加载完成事件
+  window.ztools.onPluginLoaded((plugin) => {
+    console.log('插件页面加载完成:', plugin)
+    windowStore.setPluginLoading(false)
+  })
+
   // 监听插件关闭事件
   window.ztools.onPluginClosed(() => {
     console.log('插件已关闭')
     windowStore.updateCurrentPlugin(null)
+    windowStore.setPluginLoading(false)
   })
 
   // 监听子输入框 placeholder 更新事件

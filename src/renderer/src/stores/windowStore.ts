@@ -41,6 +41,8 @@ export const useWindowStore = defineStore('window', () => {
 
   // 当前插件信息
   const currentPlugin = ref<PluginInfo | null>(null)
+  // 插件加载中状态（用于显示 loading 动效）
+  const pluginLoading = ref(false)
 
   // 子输入框配置 (插件模式下使用)
   const subInputPlaceholder = ref('搜索')
@@ -92,6 +94,9 @@ export const useWindowStore = defineStore('window', () => {
         subInputPlaceholder.value = '搜索'
         console.log('使用默认 placeholder:', plugin.path)
       }
+      pluginLoading.value = true
+    } else {
+      pluginLoading.value = false
     }
   }
 
@@ -107,6 +112,10 @@ export const useWindowStore = defineStore('window', () => {
       subInputPlaceholder.value = newValue
       console.log('当前插件,立即更新 placeholder:', newValue)
     }
+  }
+
+  function setPluginLoading(isLoading: boolean): void {
+    pluginLoading.value = isLoading
   }
 
   // 更新自动粘贴配置
@@ -417,6 +426,7 @@ export const useWindowStore = defineStore('window', () => {
     placeholder,
     avatar,
     currentPlugin,
+    pluginLoading,
     subInputPlaceholder,
     autoPaste,
     autoClear,
@@ -429,6 +439,7 @@ export const useWindowStore = defineStore('window', () => {
     updatePlaceholder,
     updateAvatar,
     updateCurrentPlugin,
+    setPluginLoading,
     updateSubInputPlaceholder,
     updateAutoPaste,
     updateAutoClear,
