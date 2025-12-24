@@ -45,13 +45,13 @@
 
     <!-- 有搜索时显示搜索结果 -->
     <div v-else class="search-results">
-      <!-- 最佳匹配（包含应用、插件、系统设置） -->
+      <!-- 最佳搜索结果（模糊搜索） -->
       <CollapsibleList
-        v-if="searchResults.length > 0"
+        v-if="bestSearchResults.length > 0"
         v-model:expanded="isSearchResultsExpanded"
-        title="最佳匹配"
-        :apps="searchResults"
-        :selected-index="searchResultSelectedIndex"
+        title="最佳搜索结果"
+        :apps="bestSearchResults"
+        :selected-index="bestSearchResultSelectedIndex"
         :empty-text="'未找到应用'"
         :default-visible-rows="2"
         :draggable="false"
@@ -59,7 +59,21 @@
         @contextmenu="(app) => handleAppContextMenu(app, true)"
       />
 
-      <!-- 匹配推荐 -->
+      <!-- 最佳匹配（匹配指令：regex/img/files） -->
+      <CollapsibleList
+        v-if="bestMatches.length > 0"
+        v-model:expanded="isBestMatchesExpanded"
+        title="最佳匹配"
+        :apps="bestMatches"
+        :selected-index="bestMatchSelectedIndex"
+        :empty-text="''"
+        :default-visible-rows="2"
+        :draggable="false"
+        @select="handleSelectApp"
+        @contextmenu="(app) => handleAppContextMenu(app, true)"
+      />
+
+      <!-- 匹配推荐（over 类型） -->
       <CollapsibleList
         v-model:expanded="isRecommendationsExpanded"
         title="匹配推荐"
@@ -155,11 +169,12 @@ const selectedCol = ref(0)
 const isRecentExpanded = ref(false)
 const isPinnedExpanded = ref(false)
 const isSearchResultsExpanded = ref(false)
+const isBestMatchesExpanded = ref(false)
 const isRecommendationsExpanded = ref(false)
 const scrollContainerRef = ref<HTMLElement>()
 
-// 搜索结果
-const internalSearchResults = computed(() => {
+// 最佳搜索结果（模糊搜索：应用、插件、系统设置）
+const bestSearchResults = computed(() => {
   // 如果有粘贴内容，先获取匹配类型的指令
   let matchedCommands: any[] | null = null
 
@@ -186,17 +201,39 @@ const internalSearchResults = computed(() => {
     return matchedCommands
   }
 
-  // 否则正常搜索（无粘贴内容）
+  // 否则正常搜索（无粘贴内容），返回模糊搜索结果
+  if (!props.searchQuery.trim()) {
+    return []
+  }
+
   const result = search(props.searchQuery)
   return result.bestMatches
 })
 
-// 搜索结果（包含应用、插件、系统设置）
-const searchResults = computed(() => {
-  if (!props.searchQuery.trim() && !props.pastedImage && !props.pastedText && !props.pastedFiles) {
+// 最佳匹配（匹配指令：regex/img/files 类型）
+const bestMatches = computed(() => {
+  // 有粘贴内容时不显示匹配指令
+  if (props.pastedImage || props.pastedText || props.pastedFiles) {
     return []
   }
-  return internalSearchResults.value
+
+  // 没有搜索关键词时不显示
+  if (!props.searchQuery.trim()) {
+    return []
+  }
+
+  // 只有当没有模糊搜索结果时，才显示匹配指令
+  if (bestSearchResults.value.length > 0) {
+    return []
+  }
+
+  const result = search(props.searchQuery)
+
+  // 从 regexMatches 中过滤出 regex、img、files 类型（排除 over）
+  return result.regexMatches.filter((cmd) => {
+    const cmdType = cmd.cmdType || cmd.matchCmd?.type
+    return cmdType === 'regex' || cmdType === 'img' || cmdType === 'files'
+  })
 })
 
 /**
@@ -243,9 +280,15 @@ const recommendations = computed(() => {
   const searchResult = search(props.searchQuery)
   const regexResults = searchResult.regexMatches
 
+  // 只保留 over 类型的匹配指令
+  const overTypeResults = regexResults.filter((cmd) => {
+    const cmdType = cmd.cmdType || cmd.matchCmd?.type
+    return cmdType === 'over'
+  })
+
   // 去重：同一个 feature 只保留第一个匹配的 cmd
   const seenFeatures = new Set<string>()
-  const uniqueRegexResults = regexResults.filter((item) => {
+  const uniqueRegexResults = overTypeResults.filter((item) => {
     const featureKey = item.type === 'plugin' ? `${item.path}:${item.featureCode}` : item.path
     if (seenFeatures.has(featureKey)) {
       return false // 已经出现过，跳过
@@ -316,7 +359,7 @@ const displayApps = computed(() => {
   if (props.searchQuery.trim() === '') {
     return getRecentCommands()
   } else {
-    return internalSearchResults.value
+    return []
   }
 })
 
@@ -352,15 +395,24 @@ function arrayToGrid(arr: any[], cols = 9): any[][] {
   return grid
 }
 
-// 可见的搜索结果（用于键盘导航）
-const visibleSearchResults = computed(() => {
+// 可见的最佳搜索结果（用于键盘导航）
+const visibleBestSearchResults = computed(() => {
   const defaultVisibleCount = 9 * 2 // itemsPerRow * defaultVisibleRows
-  const canExpand = searchResults.value.length > defaultVisibleCount
+  const canExpand = bestSearchResults.value.length > defaultVisibleCount
 
   if (!canExpand || isSearchResultsExpanded.value) {
-    return searchResults.value
+    return bestSearchResults.value
   }
-  return searchResults.value.slice(0, defaultVisibleCount)
+  return bestSearchResults.value.slice(0, defaultVisibleCount)
+})
+
+// 可见的最佳匹配（用于键盘导航）
+const visibleBestMatches = computed(() => {
+  const defaultVisibleCount = 9 * 2
+  if (isBestMatchesExpanded.value || bestMatches.value.length <= defaultVisibleCount) {
+    return bestMatches.value
+  }
+  return bestMatches.value.slice(0, defaultVisibleCount)
 })
 
 // 可见的推荐列表（用于键盘导航）
@@ -377,11 +429,18 @@ const navigationGrid = computed(() => {
   const sections: any[] = []
 
   if (props.searchQuery.trim() || props.pastedImage || props.pastedText || props.pastedFiles) {
-    // 有搜索或粘贴图片/文本/文件时：搜索结果 + 推荐
-    if (visibleSearchResults.value.length > 0) {
-      const searchGrid = arrayToGrid(visibleSearchResults.value)
+    // 有搜索或粘贴图片/文本/文件时：最佳搜索结果 + 最佳匹配 + 匹配推荐
+    if (visibleBestSearchResults.value.length > 0) {
+      const searchGrid = arrayToGrid(visibleBestSearchResults.value)
       searchGrid.forEach((row) => {
-        sections.push({ type: 'search', items: row })
+        sections.push({ type: 'bestSearch', items: row })
+      })
+    }
+
+    if (visibleBestMatches.value.length > 0) {
+      const matchGrid = arrayToGrid(visibleBestMatches.value)
+      matchGrid.forEach((row) => {
+        sections.push({ type: 'bestMatch', items: row })
       })
     }
 
@@ -441,9 +500,14 @@ function getAbsoluteIndexForSection(sectionType: string): number {
   return (selectedRow.value - startRow) * 9 + selectedCol.value
 }
 
-// 计算搜索结果中的选中索引
-const searchResultSelectedIndex = computed(() => {
-  return getAbsoluteIndexForSection('search')
+// 计算最佳搜索结果中的选中索引
+const bestSearchResultSelectedIndex = computed(() => {
+  return getAbsoluteIndexForSection('bestSearch')
+})
+
+// 计算最佳匹配中的选中索引
+const bestMatchSelectedIndex = computed(() => {
+  return getAbsoluteIndexForSection('bestMatch')
 })
 
 // 计算推荐列表中的选中索引
@@ -483,7 +547,13 @@ watch(
 
 // 监听展开状态变化，调整窗口高度
 watch(
-  [isRecentExpanded, isPinnedExpanded, isSearchResultsExpanded, isRecommendationsExpanded],
+  [
+    isRecentExpanded,
+    isPinnedExpanded,
+    isSearchResultsExpanded,
+    isBestMatchesExpanded,
+    isRecommendationsExpanded
+  ],
   () => {
     // 直接 emit，让 App.vue 的 updateWindowHeight 中的 nextTick 处理 DOM 更新
     emit('height-changed')
@@ -997,6 +1067,7 @@ function resetCollapseState(): void {
   isRecentExpanded.value = false
   isPinnedExpanded.value = false
   isSearchResultsExpanded.value = false
+  isBestMatchesExpanded.value = false
   isRecommendationsExpanded.value = false
 }
 

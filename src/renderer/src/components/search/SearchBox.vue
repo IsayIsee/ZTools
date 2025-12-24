@@ -335,9 +335,13 @@ async function handlePaste(event: ClipboardEvent): Promise<void> {
     if (copiedContent?.type === 'image') {
       // 粘贴的是图片 -> 作为匹配内容
       emit('update:pastedImage', copiedContent.data as string)
+      // 清空输入框文本
+      emit('update:modelValue', '')
     } else if (copiedContent?.type === 'file') {
       // 粘贴的是文件 -> 作为匹配内容
       emit('update:pastedFiles', copiedContent.data as FileItem[])
+      // 清空输入框文本
+      emit('update:modelValue', '')
     } else if (copiedContent?.type === 'text') {
       // 粘贴的是文本 -> 检查输入框状态
       const input = inputRef.value
@@ -382,6 +386,8 @@ async function handlePaste(event: ClipboardEvent): Promise<void> {
       } else {
         // 输入框为空 -> 作为粘贴内容（用于 over 类型匹配指令）
         emit('update:pastedText', copiedContent.data as string)
+        // 清空输入框文本
+        emit('update:modelValue', '')
       }
     }
   } catch (error) {
@@ -468,6 +474,8 @@ async function handleDrop(event: DragEvent): Promise<void> {
     // 触发粘贴文件事件（和粘贴文件一样的处理）
     if (fileItems.length > 0) {
       emit('update:pastedFiles', fileItems)
+      // 清空输入框文本
+      emit('update:modelValue', '')
     } else {
       console.log('没有有效的文件项')
     }
