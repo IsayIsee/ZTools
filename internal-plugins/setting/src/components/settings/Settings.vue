@@ -62,11 +62,11 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { id: 'general', icon: 'settings', label: '通用设置' },
   { id: 'shortcuts', icon: 'keyboard', label: '全局快捷键' },
-  { id: 'sync', icon: 'cloud', label: 'WebDAV 同步' },
   { id: 'plugins', icon: 'plugin', label: '已安装插件' },
   { id: 'market', icon: 'store', label: '插件市场' },
   { id: 'data', icon: 'database', label: '我的数据' },
-  { id: 'all-commands', icon: 'list', label: '所有指令' }
+  { id: 'all-commands', icon: 'list', label: '所有指令' },
+  { id: 'sync', icon: 'cloud', label: 'WebDAV 同步' }
 ]
 
 const activeMenu = ref('general')
