@@ -148,6 +148,7 @@ class PluginManager {
       // 创建 WebContentsView
       this.pluginView = new WebContentsView({
         webPreferences: {
+          backgroundThrottling: false,
           contextIsolation: false,
           nodeIntegration: false,
           webSecurity: false,
@@ -795,6 +796,7 @@ class PluginManager {
       // 创建 WebContentsView
       const pluginView = new WebContentsView({
         webPreferences: {
+          backgroundThrottling: false,
           contextIsolation: false,
           nodeIntegration: false,
           webSecurity: false,
