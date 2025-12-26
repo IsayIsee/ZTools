@@ -105,7 +105,7 @@ const handleOverlayClick = (): void => {
 }
 
 .dialog-container {
-  background: var(--bg-color);
+  background: var(--dialog-bg);
   border: 2px solid var(--control-border);
   border-radius: 6px;
   width: 90%;
