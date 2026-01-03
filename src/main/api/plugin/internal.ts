@@ -148,12 +148,15 @@ export class InternalPluginAPI {
       return await (pluginsAPI as any).installPluginFromMarket(plugin)
     })
 
-    ipcMain.handle('internal:get-plugin-readme', async (event, pluginPath: string) => {
-      if (!requireInternalPlugin(this.pluginManager, event)) {
-        throw new PermissionDeniedError('internal:get-plugin-readme')
+    ipcMain.handle(
+      'internal:get-plugin-readme',
+      async (event, pluginPathOrName: string, pluginName?: string) => {
+        if (!requireInternalPlugin(this.pluginManager, event)) {
+          throw new PermissionDeniedError('internal:get-plugin-readme')
+        }
+        return await (pluginsAPI as any).getPluginReadme(pluginPathOrName, pluginName)
       }
-      return await (pluginsAPI as any).getPluginReadme(pluginPath)
-    })
+    )
 
     ipcMain.handle('internal:get-plugin-doc-keys', async (event, pluginName: string) => {
       if (!requireInternalPlugin(this.pluginManager, event)) {
@@ -339,7 +342,10 @@ export class InternalPluginAPI {
         this.mainWindow?.webContents.send('update-acrylic-opacity', { lightOpacity, darkOpacity })
 
         // 广播到所有分离窗口
-        detachedWindowManager.broadcastToAllWindows('update-acrylic-opacity', { lightOpacity, darkOpacity })
+        detachedWindowManager.broadcastToAllWindows('update-acrylic-opacity', {
+          lightOpacity,
+          darkOpacity
+        })
 
         return { success: true }
       }

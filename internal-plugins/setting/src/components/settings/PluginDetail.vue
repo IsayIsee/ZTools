@@ -301,20 +301,29 @@ function switchTab(tabId: TabId): void {
 
 // 加载 README
 async function loadReadme(): Promise<void> {
-  if (!props.plugin.path) {
-    readmeError.value = '插件路径不存在'
-    return
-  }
-
   readmeLoading.value = true
   readmeError.value = ''
 
   try {
-    const result = await window.ztools.internal.getPluginReadme(props.plugin.path)
-    if (result.success && result.content) {
-      readmeContent.value = result.content
+    // 如果是已安装的插件，读取本地 README
+    if (props.plugin.installed && props.plugin.path) {
+      const result = await window.ztools.internal.getPluginReadme(props.plugin.path)
+      if (result.success && result.content) {
+        readmeContent.value = result.content
+      } else {
+        readmeError.value = result.error || '读取失败'
+      }
+    }
+    // 如果是未安装的插件，从远程加载
+    else if (props.plugin.name) {
+      const result = await window.ztools.internal.getPluginReadme(props.plugin.name)
+      if (result.success && result.content) {
+        readmeContent.value = result.content
+      } else {
+        readmeError.value = result.error || '加载失败'
+      }
     } else {
-      readmeError.value = result.error || '读取失败'
+      readmeError.value = '插件信息不完整'
     }
   } catch (error) {
     console.error('加载 README 失败:', error)
@@ -453,7 +462,8 @@ function formatDate(dateStr?: string): string {
 
 // 组件挂载时加载 README
 onMounted(() => {
-  if (props.plugin.installed && props.plugin.path) {
+  // 无论是否安装，只要有插件信息就尝试加载
+  if (props.plugin.name || props.plugin.path) {
     loadReadme()
   }
 })

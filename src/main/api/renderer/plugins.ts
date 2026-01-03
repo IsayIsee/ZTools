@@ -2,6 +2,7 @@ import AdmZip from 'adm-zip'
 import { app, dialog, ipcMain } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import { normalizeIconPath } from '../../common/iconUtils'
 import { isInternalPlugin } from '../../core/internalPlugins'
 import lmdbInstance from '../../core/lmdb/lmdbInstance'
@@ -42,8 +43,8 @@ export class PluginsAPI {
     ipcMain.handle('install-plugin-from-market', (_event, plugin: any) =>
       this.installPluginFromMarket(plugin)
     )
-    ipcMain.handle('get-plugin-readme', (_event, pluginPath: string) =>
-      this.getPluginReadme(pluginPath)
+    ipcMain.handle('get-plugin-readme', (_event, pluginPathOrName: string, pluginName?: string) =>
+      this.getPluginReadme(pluginPathOrName, pluginName)
     )
     ipcMain.handle('get-plugin-db-data', (_event, pluginName: string) =>
       this.getPluginDbData(pluginName)
@@ -666,6 +667,26 @@ export class PluginsAPI {
 
   // 获取插件 README.md 内容
   private async getPluginReadme(
+    pluginPathOrName: string,
+    pluginName?: string
+  ): Promise<{ success: boolean; content?: string; error?: string }> {
+    try {
+      // 如果 pluginPathOrName 是一个路径（包含 / 或 \），则读取本地文件
+      if (pluginPathOrName.includes('/') || pluginPathOrName.includes('\\')) {
+        return await this.getLocalPluginReadme(pluginPathOrName)
+      }
+
+      // 否则当作插件名称，从远程加载
+      const name = pluginName || pluginPathOrName
+      return await this.getRemotePluginReadme(name)
+    } catch (error: unknown) {
+      console.error('读取插件 README 失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : '读取失败' }
+    }
+  }
+
+  // 读取本地插件 README
+  private async getLocalPluginReadme(
     pluginPath: string
   ): Promise<{ success: boolean; content?: string; error?: string }> {
     try {
@@ -675,7 +696,47 @@ export class PluginsAPI {
       for (const filename of possibleReadmeFiles) {
         const readmePath = path.join(pluginPath, filename)
         try {
-          const content = await fs.readFile(readmePath, 'utf-8')
+          let content = await fs.readFile(readmePath, 'utf-8')
+
+          // 将插件路径转换为 file:// URL（跨平台兼容）
+          const pluginPathUrl = pathToFileURL(pluginPath).href
+
+          // 替换 Markdown 图片语法：![alt](path)
+          content = content.replace(
+            /!\[([^\]]*)\]\((?!http|file:)([^)]+)\)/g,
+            (_match, alt, imgPath) => {
+              const cleanPath = imgPath.replace(/^\.\//, '')
+              return `![${alt}](${pluginPathUrl}/${cleanPath})`
+            }
+          )
+
+          // 替换 HTML img 标签的 src 属性
+          content = content.replace(
+            /<img([^>]*?)src=["'](?!http|file:)([^"']+)["']([^>]*?)>/gi,
+            (_match, before, src, after) => {
+              const cleanSrc = src.replace(/^\.\//, '')
+              return `<img${before}src="${pluginPathUrl}/${cleanSrc}"${after}>`
+            }
+          )
+
+          // 替换 Markdown 链接语法（排除锚点链接 #）
+          content = content.replace(
+            /\[([^\]]+)\]\((?!http|file:|#)([^)]+)\)/g,
+            (_match, text, linkPath) => {
+              const cleanPath = linkPath.replace(/^\.\//, '')
+              return `[${text}](${pluginPathUrl}/${cleanPath})`
+            }
+          )
+
+          // 替换 HTML a 标签的 href 属性（排除锚点链接和外部链接）
+          content = content.replace(
+            /<a([^>]*?)href=["'](?!http|file:|#)([^"']+)["']([^>]*?)>/gi,
+            (_match, before, href, after) => {
+              const cleanHref = href.replace(/^\.\//, '')
+              return `<a${before}href="${pluginPathUrl}/${cleanHref}"${after}>`
+            }
+          )
+
           return { success: true, content }
         } catch {
           // 继续尝试下一个文件名
@@ -686,8 +747,63 @@ export class PluginsAPI {
       // 所有文件名都不存在
       return { success: false, error: '暂无详情' }
     } catch (error: unknown) {
-      console.error('读取插件 README 失败:', error)
+      console.error('读取本地插件 README 失败:', error)
       return { success: false, error: error instanceof Error ? error.message : '读取失败' }
+    }
+  }
+
+  // 从远程加载插件 README
+  private async getRemotePluginReadme(
+    pluginName: string
+  ): Promise<{ success: boolean; content?: string; error?: string }> {
+    try {
+      const baseUrl = `https://raw.githubusercontent.com/ZToolsCenter/ZTools-plugins/main/plugins/${pluginName}`
+      const readmeUrl = `${baseUrl}/README.md`
+
+      console.log('从远程加载 README:', readmeUrl)
+
+      // 使用 fetch 获取 README 内容
+      const response = await fetch(readmeUrl)
+      if (!response.ok) {
+        return { success: false, error: '暂无详情' }
+      }
+
+      let content = await response.text()
+
+      // 替换 Markdown 图片语法：![alt](path)
+      content = content.replace(/!\[([^\]]*)\]\((?!http)([^)]+)\)/g, (_match, alt, path) => {
+        const cleanPath = path.replace(/^\.\//, '')
+        return `![${alt}](${baseUrl}/${cleanPath})`
+      })
+
+      // 替换 HTML img 标签的 src 属性
+      content = content.replace(
+        /<img([^>]*?)src=["'](?!http)([^"']+)["']([^>]*?)>/gi,
+        (_match, before, src, after) => {
+          const cleanSrc = src.replace(/^\.\//, '')
+          return `<img${before}src="${baseUrl}/${cleanSrc}"${after}>`
+        }
+      )
+
+      // 替换 Markdown 链接语法（排除锚点链接 #）
+      content = content.replace(/\[([^\]]+)\]\((?!http|#)([^)]+)\)/g, (_match, text, path) => {
+        const cleanPath = path.replace(/^\.\//, '')
+        return `[${text}](${baseUrl}/${cleanPath})`
+      })
+
+      // 替换 HTML a 标签的 href 属性（排除锚点链接和外部链接）
+      content = content.replace(
+        /<a([^>]*?)href=["'](?!http|#)([^"']+)["']([^>]*?)>/gi,
+        (_match, before, href, after) => {
+          const cleanHref = href.replace(/^\.\//, '')
+          return `<a${before}href="${baseUrl}/${cleanHref}"${after}>`
+        }
+      )
+
+      return { success: true, content }
+    } catch (error: unknown) {
+      console.error('从远程加载插件 README 失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : '加载失败' }
     }
   }
 
