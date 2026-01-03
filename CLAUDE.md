@@ -11,7 +11,9 @@ ZTools 是一个高性能、可扩展的 macOS/Windows 应用启动器和插件�
 - 🚀 **快速启动**：拼音搜索、正则匹配、历史记录、固定应用
 - 🧩 **插件系统**：支持 UI 插件和无界面插件，数据隔离，统一 API
 - 📋 **剪贴板管理**：历史记录、搜索、图片支持、跨平台原生实现
-- 🎨 **主题定制**：系统/亮色/暗色模式，6 种主题色
+- 🔄 **多设备同步**：WebDAV 同步，支持应用历史、固定列表、插件数据
+- 🪟 **分离窗口**：插件可独立为窗口，支持多窗口操作
+- 🎨 **主题定制**：系统/亮色/暗色模式，6 种主题色，Windows 11 透明材质
 - ⚡ **高性能**：LMDB 数据库（3-5x PouchDB 性能），WebContentsView 架构
 - 🌍 **跨平台**：macOS 和 Windows 原生支持
 
@@ -22,6 +24,10 @@ ZTools 是一个高性能、可扩展的 macOS/Windows 应用启动器和插件�
 - 模块化 IPC 架构（shared/renderer/plugin 三层分离）
 - 跨平台原生模块（C++ 实现剪贴板监听、窗口管理、区域截图）
 - Fuse.js 模糊搜索引擎（拼音、拼音首字母支持）
+- WebDAV 数据同步（增量同步、冲突检测）
+- CSS 变量 + 自定义控件系统（主题切换）
+- 应用目录实时监听（chokidar）
+- 内置插件系统（开箱即用）
 
 ## 开发命令
 
@@ -47,39 +53,65 @@ pnpm build:unpack    # 打包但不生成安装包（调试用）
 ```
 Main Process (src/main/)
   ├─ index.ts              # 应用入口
-  ├─ windowManager.ts      # 窗口管理、快捷键注册
-  ├─ pluginManager.ts      # 插件 BrowserView/BrowserWindow 管理
-  ├─ clipboardManager.ts   # 剪贴板监听和历史管理
+  ├─ appWatcher.ts         # 应用目录监听器（自动检测应用安装/卸载）
+  ├─ managers/             # 核心管理器
+  │   ├─ windowManager.ts      # 窗口管理、快捷键注册
+  │   ├─ pluginManager.ts      # 插件 WebContentsView 管理
+  │   └─ clipboardManager.ts   # 剪贴板监听和历史管理
   ├─ api/                  # 模块化 IPC 通信中心
   │   ├─ index.ts          # API 管理器（统一初始化）
   │   ├─ shared/           # 主程序和插件共享的 API
   │   │   ├─ database.ts   # 数据库 API（支持命名空间隔离）
-  │   │   └─ clipboard.ts  # 剪贴板 API
+  │   │   ├─ clipboard.ts  # 剪贴板 API
+  │   │   └─ imageAnalysis.ts  # 图像分析 API
   │   ├─ renderer/         # 主程序渲染进程专用 API
   │   │   ├─ commands.ts   # 指令管理
   │   │   ├─ plugins.ts    # 插件管理
   │   │   ├─ window.ts     # 窗口控制
   │   │   ├─ settings.ts   # 设置管理
-  │   │   └─ system.ts     # 系统功能
-  │   └─ plugin/           # 插件专用 API
-  │       ├─ lifecycle.ts  # 生命周期事件
-  │       ├─ ui.ts         # UI 控制
-  │       ├─ window.ts     # 插件窗口管理
-  │       ├─ dialog.ts     # 对话框
-  │       ├─ clipboard.ts  # 剪贴板操作
-  │       ├─ input.ts      # 输入模拟
-  │       ├─ shell.ts      # Shell 命令
-  │       └─ feature.ts    # 插件功能
-  └─ core/
-      ├─ commandLauncher/  # 指令启动器
-      ├─ commandScanner/   # 指令扫描器
-      ├─ lmdb/             # LMDB 数据持久化（高性能键值数据库）
-      │   ├─ index.ts      # 主数据库类
-      │   ├─ lmdbInstance.ts  # 单例实例
-      │   ├─ syncApi.ts    # 同步 API
-      │   ├─ promiseApi.ts # Promise API
-      │   └─ types.ts      # 类型定义
-      └─ pluginWindowManager.ts  # 插件独立窗口管理
+  │   │   ├─ system.ts     # 系统功能
+  │   │   ├─ systemSettings.ts # Windows 系统设置集成
+  │   │   └─ sync.ts       # WebDAV 同步 API
+  │   ├─ plugin/           # 插件专用 API
+  │   │   ├─ lifecycle.ts  # 生命周期事件
+  │   │   ├─ ui.ts         # UI 控制
+  │   │   ├─ window.ts     # 插件窗口管理
+  │   │   ├─ dialog.ts     # 对话框
+  │   │   ├─ clipboard.ts  # 剪贴板操作
+  │   │   ├─ input.ts      # 输入模拟
+  │   │   ├─ shell.ts      # Shell 命令
+  │   │   ├─ feature.ts    # 插件功能
+  │   │   ├─ device.ts     # 设备信息
+  │   │   ├─ http.ts       # HTTP 请求
+  │   │   ├─ redirect.ts   # 搜索重定向
+  │   │   ├─ screen.ts     # 屏幕功能
+  │   │   └─ internal.ts   # 内置插件专用 API
+  │   └─ updater.ts        # 应用更新 API
+  ├─ core/
+  │   ├─ commandLauncher/  # 指令启动器
+  │   ├─ commandScanner/   # 指令扫描器
+  │   ├─ lmdb/             # LMDB 数据持久化（高性能键值数据库）
+  │   │   ├─ index.ts      # 主数据库类
+  │   │   ├─ lmdbInstance.ts  # 单例实例
+  │   │   ├─ syncApi.ts    # 同步 API
+  │   │   ├─ promiseApi.ts # Promise API
+  │   │   └─ types.ts      # 类型定义
+  │   ├─ sync/             # WebDAV 同步引擎
+  │   │   ├─ syncEngine.ts # 同步引擎核心
+  │   │   ├─ webdavClient.ts # WebDAV 客户端
+  │   │   └─ types.ts      # 类型定义
+  │   ├─ native/           # 跨平台原生模块接口
+  │   ├─ systemSettings/   # Windows 系统设置
+  │   ├─ detachedWindowManager.ts  # 分离窗口管理
+  │   ├─ pluginWindowManager.ts    # 插件独立窗口管理
+  │   ├─ internalPlugins.ts        # 内置插件定义
+  │   ├─ internalPluginLoader.ts   # 内置插件加载器
+  │   ├─ globalStyles.ts   # 全局样式
+  │   └─ screenCapture.ts  # 屏幕截图
+  ├─ common/               # 公共模块
+  │   ├─ constants.ts      # 常量定义
+  │   └─ iconUtils.ts      # 图标工具
+  └─ utils/                # 工具函数集合
          ↓ IPC
 Preload Script (src/preload/index.ts)
   ├─ contextBridge.exposeInMainWorld('ztools', {...})
@@ -354,13 +386,22 @@ interface DbDoc {
 
 - `ZTOOLS/` - 主程序数据
   - `ZTOOLS/plugins` - 插件列表
-  - `ZTOOLS/app-history` - 应用使用历史
-  - `ZTOOLS/pinned-apps` - 固定应用列表
+  - `ZTOOLS/command-history` - 命令使用历史
+  - `ZTOOLS/pinned-commands` - 固定指令列表
   - `ZTOOLS/settings-general` - 通用设置
+  - `ZTOOLS/detachedWindowSizes` - 分离窗口尺寸（按插件名存储）
+  - `ZTOOLS/outKillPlugin` - 退出时关闭的插件列表
+  - `ZTOOLS/autoDetachPlugin` - 自动分离的插件列表
 - `PLUGIN/{pluginName}/` - 插件专属数据（自动隔离）
   - 插件调用 `db.put({ _id: 'config' })` → 实际存储为 `PLUGIN/my-plugin/config`
   - 前缀自动添加和移除，插件无感知
+- `SYNC/` - 同步相关数据
+  - `SYNC/config` - 同步配置（包含 url、username、encryptedPassword、enabled 等）
 - `CLIPBOARD/` - 剪贴板历史（未使用，改用附件存储）
+
+**注意**：通过 `window.ztools.dbGet(key)` 和 `window.ztools.dbPut(key, data)` 访问的键会自动添加 `ZTOOLS/` 前缀，例如：
+- `dbGet('settings-general')` → 实际读取 `ZTOOLS/settings-general`
+- `dbPut('detachedWindowSizes', data)` → 实际写入 `ZTOOLS/detachedWindowSizes`
 
 **附件存储**：
 
@@ -406,6 +447,11 @@ interface DbDoc {
 - `plugin-input:*` - 输入模拟（sendInputEvent）
 - `plugin-shell:*` - Shell 命令执行
 - `plugin-feature:*` - 插件功能管理
+- `plugin-device:*` - 设备信息（系统版本、设备型号等）
+- `plugin-http:*` - HTTP 请求功能
+- `plugin-redirect:*` - 搜索重定向功能
+- `plugin-screen:*` - 屏幕功能（截图等）
+- `plugin-internal:*` - 内置插件专用 API（更高权限）
 
 **事件推送**（Main → Renderer）：
 
@@ -506,6 +552,325 @@ clipboardManager.handleClipboardChange()
 - 总容量限制：500MB
 - 超限时自动清理最旧图片
 - 图片存储位置：`userData/clipboard/images/`
+
+### WebDAV 同步系统
+
+**概述**：ZTools 支持通过 WebDAV 协议实现多设备数据同步，包括应用历史、固定列表、插件数据等。
+
+**核心特性**：
+
+- 🔄 **增量同步**：只同步变更的数据，减少网络传输
+- 🔒 **冲突检测**：基于时间戳的冲突检测和解决机制
+- 💾 **离线优先**：本地数据优先，后台自动同步
+- 🔐 **安全存储**：密码使用 Electron safeStorage 加密存储
+- 🌍 **跨平台**：macOS 和 Windows 完整支持
+
+**技术架构**：
+
+```
+syncEngine.ts (同步引擎)
+    ↓
+webdavClient.ts (WebDAV 客户端)
+    ↓
+同步数据分类：
+  - 设置数据 (ZTOOLS/settings-general)
+  - 插件数据 (PLUGIN/*/*)
+```
+
+**同步的数据**：
+- 通用设置（`ZTOOLS/settings-general`）✅
+- 所有插件数据（`PLUGIN/` 前缀）✅
+
+**不同步的数据**（隐私保护）：
+- ❌ 命令历史（`ZTOOLS/command-history`）
+- ❌ 固定指令列表（`ZTOOLS/pinned-commands`）
+
+**同步流程**：
+
+```
+1. 用户配置 WebDAV 服务器（URL、用户名、密码）
+    ↓
+2. 启用同步开关
+    ↓
+3. syncEngine 定期检查本地和远程数据
+    ↓
+4. 对比 _lastModified 时间戳
+    ↓
+5. 上传/下载变更的数据
+    ↓
+6. 冲突检测：如果两端都有修改，取最新时间戳的数据
+    ↓
+7. 更新本地 LMDB 数据库
+    ↓
+8. 通知 UI 刷新
+```
+
+**关键实现**（`src/main/core/sync/`）：
+
+- **syncEngine.ts**：
+  - `startSync()` - 启动同步
+  - `syncNow()` - 立即同步
+  - `resolveConflict()` - 冲突解决（基于时间戳）
+  - 定时同步（可配置间隔）
+
+- **webdavClient.ts**：
+  - `connect()` - 连接 WebDAV 服务器
+  - `uploadFile()` / `downloadFile()` - 文件上传/下载
+  - `listFiles()` - 列出远程文件
+  - `delete()` - 删除远程文件
+
+**配置存储**：
+
+- 配置保存在 `ZTOOLS/settings-sync`
+- 密码通过 `safeStorage.encryptString()` 加密
+- 字段：`url`, `username`, `encryptedPassword`, `enabled`, `syncInterval`
+
+**API 接口**（`src/main/api/renderer/sync.ts`）：
+
+- `sync:save-config` - 保存同步配置
+- `sync:get-config` - 获取同步配置
+- `sync:test-connection` - 测试连接
+- `sync:start` - 启动同步
+- `sync:stop` - 停止同步
+- `sync:sync-now` - 立即同步
+
+### 分离窗口系统
+
+**概述**：支持将插件从主窗口中分离为独立窗口，提供更灵活的多窗口使用体验。
+
+**核心特性**：
+
+- 🪟 **独立窗口**：将任意插件分离为独立窗口
+- 💾 **窗口记忆**：自动保存和恢复窗口尺寸、位置
+- 🎨 **材质支持**：Windows 11 支持 Mica/Acrylic 透明材质，macOS 支持亚克力材质
+- 🎯 **自定义标题栏**：52px 高度的自定义标题栏，支持拖拽、最小化、关闭
+
+**技术实现**（`src/main/core/detachedWindowManager.ts`）：
+
+```typescript
+class DetachedWindowManager {
+  // 分离插件为独立窗口
+  detachPlugin(plugin: PluginInfo): BrowserWindow
+
+  // 恢复插件到主窗口
+  attachPlugin(pluginName: string): void
+
+  // 获取插件窗口尺寸（从数据库读取）
+  getPluginWindowSize(pluginName: string): { width: number; height: number }
+
+  // 保存窗口尺寸（到数据库）
+  savePluginWindowSize(pluginName: string, width: number, height: number): void
+}
+```
+
+**窗口配置**：
+
+```typescript
+const window = new BrowserWindow({
+  width: savedWidth || 800,
+  height: savedHeight || 600,
+  frame: false, // 无边框窗口
+  titleBarStyle: 'hidden', // macOS 隐藏标题栏
+  backgroundColor: materialBgColor, // 根据材质设置背景色
+  vibrancy: 'under-window', // macOS 亚克力材质
+  backgroundMaterial: 'mica' // Windows 11 Mica 材质
+})
+```
+
+**自定义标题栏**（`src/renderer/src/components/detached/DetachedTitlebar.vue`）：
+
+- 高度：52px（`DETACHED_TITLEBAR_HEIGHT`）
+- 功能：显示插件名称、最小化、关闭按钮
+- 支持拖拽移动窗口（`-webkit-app-region: drag`）
+- 按钮区域不可拖拽（`-webkit-app-region: no-drag`）
+
+**数据持久化**：
+
+- 窗口尺寸保存在 `ZTOOLS/detached-window-sizes`
+- 格式：`{ [pluginName]: { width, height } }`
+- 窗口关闭时自动保存，下次打开时恢复
+
+**使用方式**：
+
+```javascript
+// 分离插件
+window.ztools.detachPlugin('plugin-name')
+
+// 插件会在新窗口中打开，主窗口可以继续使用
+```
+
+### 应用监听系统
+
+**概述**：自动监听系统应用目录变化，实时检测应用的安装和卸载，无需手动刷新。
+
+**核心特性**：
+
+- 📁 **目录监听**：使用 chokidar 监听应用目录
+- ⚡ **实时更新**：应用安装/卸载后自动刷新列表
+- 🔄 **防抖处理**：1 秒延迟，避免频繁扫描
+- 🎯 **跨平台**：macOS 和 Windows 完整支持
+
+**技术实现**（`src/main/appWatcher.ts`）：
+
+```typescript
+class AppWatcher {
+  private watcher: FSWatcher | null = null
+
+  // 启动监听
+  start(): void {
+    const watchPaths = this.getWatchPaths()
+
+    this.watcher = chokidar.watch(watchPaths, {
+      ignored: /^\./,
+      persistent: true,
+      ignoreInitial: true,
+      depth: 2 // 递归深度
+    })
+
+    // 监听文件变化
+    this.watcher.on('add', this.handleChange)
+    this.watcher.on('unlink', this.handleChange)
+    this.watcher.on('addDir', this.handleChange)
+    this.watcher.on('unlinkDir', this.handleChange)
+  }
+
+  // 处理变化（防抖 1 秒）
+  private handleChange = debounce(() => {
+    this.rescanApps()
+  }, 1000)
+
+  // 重新扫描应用
+  private async rescanApps(): Promise<void> {
+    const commands = await scanCommands()
+    // 通知渲染进程刷新
+    mainWindow.webContents.send('apps-changed', commands)
+  }
+}
+```
+
+**监听路径**：
+
+- **macOS**：
+  - `/Applications`
+  - `/System/Applications`
+  - `~/Applications`
+
+- **Windows**：
+  - `C:\ProgramData\Microsoft\Windows\Start Menu\Programs`
+  - `%APPDATA%\Microsoft\Windows\Start Menu\Programs`
+
+**工作流程**：
+
+```
+应用安装/卸载 → 目录变化
+    ↓
+chokidar 触发 add/unlink 事件
+    ↓
+防抖 1 秒（避免频繁触发）
+    ↓
+调用 scanCommands() 重新扫描
+    ↓
+发送 apps-changed 事件到渲染进程
+    ↓
+commandDataStore.loadCommands() 刷新列表
+    ↓
+UI 自动更新
+```
+
+### 内置插件系统
+
+**概述**：ZTools 支持内置插件，提供核心功能，无需用户手动安装。
+
+**核心特性**：
+
+- 📦 **预装插件**：随应用一起打包，开箱即用
+- 🔧 **核心功能**：提供设置、系统工具等核心功能
+- 🔄 **自动加载**：应用启动时自动加载
+- 🎯 **独立代码**：与外部插件隔离，便于维护
+
+**技术实现**：
+
+**内置插件定义**（`src/main/core/internalPlugins.ts`）：
+
+```typescript
+export interface InternalPlugin {
+  name: string // 插件名称
+  dirName: string // 目录名称
+  description: string // 描述
+  enabled: boolean // 是否启用
+}
+
+export const INTERNAL_PLUGINS: InternalPlugin[] = [
+  {
+    name: 'setting',
+    dirName: 'setting',
+    description: '应用设置',
+    enabled: true
+  }
+  // 更多内置插件...
+]
+```
+
+**加载器**（`src/main/core/internalPluginLoader.ts`）：
+
+```typescript
+class InternalPluginLoader {
+  // 获取内置插件路径
+  getInternalPluginPath(dirName: string): string {
+    if (isDev) {
+      // 开发环境：从源码目录加载
+      return path.join(process.cwd(), 'internal-plugins', dirName)
+    } else {
+      // 生产环境：从 app.asar.unpacked 加载
+      return path.join(process.resourcesPath, 'internal-plugins', dirName)
+    }
+  }
+
+  // 加载所有内置插件
+  loadInternalPlugins(): Plugin[] {
+    return INTERNAL_PLUGINS
+      .filter(p => p.enabled)
+      .map(p => this.loadPlugin(p.dirName))
+  }
+}
+```
+
+**打包配置**（`electron-builder.yml`）：
+
+```yaml
+asarUnpack:
+  - internal-plugins/**  # 内置插件不打包到 asar，方便热更新
+```
+
+**当前内置插件**：
+
+1. **setting** - 应用设置插件
+   - 路径：`internal-plugins/setting/`
+   - 功能：提供应用设置界面（主题、快捷键、同步等）
+   - 特点：使用与外部插件相同的 API，便于移植
+
+**内置插件 API**（`src/main/api/plugin/internal.ts`）：
+
+内置插件专用的 API，提供更高级的系统权限：
+
+- `internal:get-system-info` - 获取系统信息
+- `internal:get-app-paths` - 获取应用路径
+- `internal:restart-app` - 重启应用
+- 其他系统级操作...
+
+**加载时机**：
+
+```
+应用启动 → internalPluginLoader.loadInternalPlugins()
+    ↓
+加载 plugin.json 并验证
+    ↓
+添加到 pluginManager 的插件列表
+    ↓
+与外部插件一起管理
+    ↓
+用户可以像使用外部插件一样使用内置插件
+```
 
 ### 插件市场系统
 
@@ -735,10 +1100,13 @@ updater 重启应用
 
 ### 修改插件系统
 
-- `src/main/pluginManager.ts` - BrowserView/BrowserWindow 创建和管理
+- `src/main/managers/pluginManager.ts` - WebContentsView 创建和管理
 - `src/main/api/renderer/plugins.ts` - 插件安装/删除逻辑
 - `src/main/api/plugin/` - 插件可用的所有 API 实现
 - `resources/preload.js` - 插件可用的 API（注入到插件上下文）
+- `src/main/core/internalPlugins.ts` - 内置插件定义
+- `src/main/core/internalPluginLoader.ts` - 内置插件加载器
+- `internal-plugins/` - 内置插件源码目录
 
 ### 修改 UI 组件和样式
 
@@ -806,6 +1174,26 @@ updater 重启应用
 - `resources/` - 打包后的更新程序位置
   - macOS: 复制到 `Contents/MacOS/ztools-updater`
   - Windows: 复制到应用根目录 `ztools-agent.exe`
+
+### 修改 WebDAV 同步功能
+
+- `src/main/core/sync/syncEngine.ts` - 同步引擎核心实现
+- `src/main/core/sync/webdavClient.ts` - WebDAV 客户端
+- `src/main/core/sync/types.ts` - 同步相关类型定义
+- `src/main/api/renderer/sync.ts` - 同步 API（IPC 接口）
+- `src/renderer/src/components/Settings.vue` - 设置界面（同步配置 UI）
+
+### 修改分离窗口功能
+
+- `src/main/core/detachedWindowManager.ts` - 分离窗口管理器
+- `src/renderer/src/components/detached/DetachedTitlebar.vue` - 分离窗口标题栏
+- `src/main/managers/windowManager.ts` - 窗口管理器（集成分离窗口）
+
+### 修改应用监听功能
+
+- `src/main/appWatcher.ts` - 应用目录监听器
+- `src/main/core/commandScanner/` - 指令扫描器（被 appWatcher 调用）
+- `src/renderer/src/stores/commandDataStore.ts` - 处理 apps-changed 事件
 
 ## 常见任务指南
 
@@ -959,12 +1347,20 @@ class APIManager {
 
 ### UI 组件开发（控件样式系统）
 
-项目在 `src/renderer/src/style.css` 中定义了一套完整的通用控件样式类，遵循以下设计原则：
+项目在 `src/renderer/src/style.css` 中定义了一套完整的通用控件样式类，基于 **CSS 变量系统**实现主题切换，遵循以下设计原则：
 
-1. **默认低调**：所有控件默认使用中性色（`--control-bg` 和 `--control-border`）
-2. **悬浮高亮**：鼠标悬浮时显示对应的主题色反馈
-3. **类型区分**：根据操作类型使用不同的颜色语义
-4. **一致性**：所有控件遵循相同的视觉语言和交互模式
+1. **CSS 变量驱动**：使用 CSS 变量（`--primary-color`、`--control-bg` 等）实现主题动态切换
+2. **默认低调**：所有控件默认使用中性色（`--control-bg` 和 `--control-border`）
+3. **悬浮高亮**：鼠标悬浮时显示对应的主题色反馈
+4. **类型区分**：根据操作类型使用不同的颜色语义
+5. **一致性**：所有控件遵循相同的视觉语言和交互模式
+
+**主题系统**：
+
+- 通过修改 CSS 变量实现主题切换（亮色/暗色/系统）
+- 支持 6 种主题色：blue、purple、green、orange、red、pink
+- 使用 `@media (prefers-color-scheme: dark)` 自动适配系统主题
+- Windows 11 支持透明材质（Mica/Acrylic）
 
 #### 可用的控件类
 

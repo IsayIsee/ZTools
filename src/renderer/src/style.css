@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* 全局禁用滚动条（只针对 html 和 body，不影响内部组件） */
 html,
 body {

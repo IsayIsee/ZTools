@@ -484,8 +484,8 @@ export class SyncEngine {
    * 获取所有未同步的文档
    */
   private async getUnsyncedDocs(): Promise<any[]> {
-    // 获取所有需要同步的文档前缀
-    const syncPrefixes = ['ZTOOLS/pinned-apps', 'ZTOOLS/settings-general', 'PLUGIN/']
+    // 获取所有需要同步的文档前缀（不包括 command-history 和 pinned-commands 以保护隐私）
+    const syncPrefixes = ['ZTOOLS/settings-general', 'PLUGIN/']
 
     const unsyncedDocs: any[] = []
     const seenIds = new Set<string>()

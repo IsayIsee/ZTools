@@ -122,7 +122,8 @@ export class SyncAPI {
     // 获取未同步文档数量
     ipcMain.handle('sync:get-unsynced-count', async () => {
       try {
-        const syncPrefixes = ['ZTOOLS/pinned-apps', 'ZTOOLS/settings-general', 'PLUGIN/']
+        // 同步白名单（不包括 command-history 和 pinned-commands 以保护隐私）
+        const syncPrefixes = ['ZTOOLS/settings-general', 'PLUGIN/']
         let count = 0
 
         for (const prefix of syncPrefixes) {

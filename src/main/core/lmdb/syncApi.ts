@@ -8,7 +8,7 @@ import {
   safeJsonParse,
   safeJsonStringify
 } from './utils'
-import crypto from 'crypto'
+import * as crypto from 'crypto'
 
 /**
  * 附件元数据接口
@@ -130,8 +130,8 @@ export class SyncApi {
    * 判断文档是否需要同步
    */
   private shouldSync(docId: string): boolean {
-    // 同步白名单
-    const syncPrefixes = ['ZTOOLS/pinned-apps', 'ZTOOLS/settings-general', 'PLUGIN/']
+    // 同步白名单（不包括 command-history 和 pinned-commands 以保护隐私）
+    const syncPrefixes = ['ZTOOLS/settings-general', 'PLUGIN/']
 
     return syncPrefixes.some((prefix) => docId.startsWith(prefix))
   }
@@ -346,7 +346,9 @@ export class SyncApi {
           rangeOptions.end = endPrefix
         }
 
-        for (const { key: currentKey, value: docStr } of this.mainDb.getRange(rangeOptions)) {
+        for (const { key: currentKey, value: docStr } of Array.from(
+          this.mainDb.getRange(rangeOptions)
+        )) {
           // 双重检查：确保 key 完全匹配前缀
           if (!currentKey.startsWith(prefix)) {
             break
