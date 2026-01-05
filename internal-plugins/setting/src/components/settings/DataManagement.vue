@@ -12,10 +12,19 @@
             v-for="pluginData in pluginDataList"
             :key="pluginData.pluginName"
             class="card plugin-card"
+            :class="{ 'ztools-card': pluginData.pluginName === 'ZTOOLS' }"
             @click="viewPluginDocs(pluginData.pluginName)"
           >
+            <!-- 主程序特殊图标 -->
+            <div
+              v-if="pluginData.pluginName === 'ZTOOLS'"
+              class="plugin-icon-placeholder ztools-icon"
+            >
+              <Icon name="database" :size="24" />
+            </div>
+            <!-- 插件图标 -->
             <AdaptiveIcon
-              v-if="pluginData.logo"
+              v-else-if="pluginData.logo"
               :src="pluginData.logo"
               class="plugin-icon"
               alt="插件图标"
@@ -26,7 +35,9 @@
             </div>
 
             <div class="plugin-info">
-              <h3 class="plugin-name">{{ pluginData.pluginName }}</h3>
+              <h3 class="plugin-name">
+                {{ pluginData.pluginName === 'ZTOOLS' ? '主程序' : pluginData.pluginName }}
+              </h3>
               <span class="doc-count"
                 >{{ pluginData.docCount }} 个文档 / {{ pluginData.attachmentCount }} 个附件</span
               >
@@ -43,11 +54,11 @@
     <!-- 二级页面：文档列表 -->
     <DetailPanel
       v-show="currentLevel === 'docList'"
-      :title="`${currentPluginName} - 文档列表`"
+      :title="`${currentPluginName === 'ZTOOLS' ? '主程序' : currentPluginName} - 文档列表`"
       :class="docListAnimationClass"
       @back="closeDocListModal"
     >
-      <div class="detail-header-actions">
+      <div v-if="currentPluginName !== 'ZTOOLS'" class="detail-header-actions">
         <button class="btn btn-danger" @click="handleClearData">
           <Icon name="trash" :size="16" />
           <span>清空所有数据</span>
@@ -100,7 +111,7 @@ import AdaptiveIcon from '../common/AdaptiveIcon.vue'
 import DetailPanel from '../common/DetailPanel.vue'
 import Icon from '../common/Icon.vue'
 
-const { success, error, warning, info, confirm } = useToast()
+const { success, error, confirm } = useToast()
 
 interface PluginData {
   pluginName: string
@@ -205,6 +216,12 @@ function closeDocDetailModal(): void {
 // 清空插件数据
 async function handleClearData(): Promise<void> {
   if (!currentPluginName.value) return
+
+  // 禁止清空主程序数据
+  if (currentPluginName.value === 'ZTOOLS') {
+    error('无法清空主程序数据，这可能导致应用异常')
+    return
+  }
 
   // 确认操作
   const confirmed = await confirm({
@@ -363,6 +380,18 @@ onUnmounted(() => {
 .plugin-card:hover {
   background: var(--hover-bg);
   transform: translateX(2px);
+}
+
+/* 主程序数据卡片特殊样式 */
+.plugin-card.ztools-card .plugin-name {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.plugin-icon-placeholder.ztools-icon {
+  background: var(--primary-color);
+  color: white;
+  opacity: 1;
 }
 
 .plugin-icon {

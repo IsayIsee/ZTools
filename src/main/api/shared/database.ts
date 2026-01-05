@@ -473,6 +473,32 @@ export class DatabaseAPI {
         }
       })
 
+      // 添加 ZTOOLS/ 主程序数据统计
+      const ztoolsDocs = lmdbInstance.allDocs('ZTOOLS/')
+      const ztoolsDocCount = ztoolsDocs.length
+
+      // 统计 ZTOOLS/ 的附件
+      let ztoolsAttachmentCount = 0
+      const ztoolsAttachmentPrefix = 'attachment-ext:ZTOOLS/'
+      for (const { key } of attachmentDb.getRange({
+        start: ztoolsAttachmentPrefix,
+        end: this.getNextPrefix(ztoolsAttachmentPrefix)
+      })) {
+        if (key.startsWith(ztoolsAttachmentPrefix)) {
+          ztoolsAttachmentCount++
+        }
+      }
+
+      // 将主程序数据插入到列表最前面
+      if (ztoolsDocCount > 0 || ztoolsAttachmentCount > 0) {
+        data.unshift({
+          pluginName: 'ZTOOLS',
+          docCount: ztoolsDocCount,
+          attachmentCount: ztoolsAttachmentCount,
+          logo: null // 主程序没有 logo，前端会显示特殊图标
+        })
+      }
+
       return { success: true, data }
     } catch (error: unknown) {
       console.error('获取插件数据统计失败:', error)
@@ -487,7 +513,8 @@ export class DatabaseAPI {
     pluginName: string
   ): Promise<{ success: boolean; data?: Array<{ key: string; type: string }>; error?: string }> {
     try {
-      const prefix = `PLUGIN/${pluginName}/`
+      // 如果是 ZTOOLS，使用 ZTOOLS/ 前缀，否则使用 PLUGIN/{pluginName}/ 前缀
+      const prefix = pluginName === 'ZTOOLS' ? 'ZTOOLS/' : `PLUGIN/${pluginName}/`
 
       // 使用 Set 去重（避免重复添加）
       const keySet = new Set<string>()
@@ -537,7 +564,8 @@ export class DatabaseAPI {
     key: string
   ): Promise<{ success: boolean; data?: any; type?: string; error?: string }> {
     try {
-      const docId = `PLUGIN/${pluginName}/${key}`
+      // 如果是 ZTOOLS，使用 ZTOOLS/ 前缀，否则使用 PLUGIN/{pluginName}/ 前缀
+      const docId = pluginName === 'ZTOOLS' ? `ZTOOLS/${key}` : `PLUGIN/${pluginName}/${key}`
 
       // 先尝试从主数据库获取
       const doc = lmdbInstance.get(docId)
