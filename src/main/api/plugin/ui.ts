@@ -25,6 +25,7 @@ export class PluginUIAPI {
     ipcMain.handle('set-sub-input', (event, placeholder?: string, isFocus?: boolean) =>
       this.setSubInput(placeholder, isFocus, event)
     )
+    ipcMain.handle('remove-sub-input', (event) => this.removeSubInput(event))
     ipcMain.on('notify-sub-input-change', (event, text: string) =>
       this.notifySubInputChange(text, event)
     )
@@ -114,6 +115,37 @@ export class PluginUIAPI {
       return true
     } catch (error: unknown) {
       console.error('设置子输入框失败:', error)
+      return false
+    }
+  }
+
+  private removeSubInput(event?: Electron.IpcMainInvokeEvent | Electron.IpcMainEvent): boolean {
+    try {
+      // 判断插件是在主窗口还是分离窗口
+      const targetWindow = event
+        ? detachedWindowManager.getWindowByPluginWebContents(event.sender.id) || this.mainWindow
+        : this.mainWindow
+
+      if (!targetWindow) {
+        console.warn('无法找到目标窗口')
+        return false
+      }
+
+      // 发送事件到目标窗口渲染进程，隐藏子输入框
+      targetWindow.webContents.send('update-sub-input-visible', false)
+      console.log('隐藏子输入框')
+
+      // 如果插件在主窗口，更新 pluginManager 的状态
+      if (targetWindow === this.mainWindow && event) {
+        const pluginInfo = this.pluginManager.getPluginInfoByWebContents(event.sender)
+        if (pluginInfo) {
+          this.pluginManager.setSubInputVisible(pluginInfo.path, false)
+        }
+      }
+
+      return true
+    } catch (error: unknown) {
+      console.error('隐藏子输入框失败:', error)
       return false
     }
   }

@@ -8,7 +8,7 @@
     </div>
 
     <!-- 搜索栏 -->
-    <div class="search-container">
+    <div v-if="subInputVisible" class="search-container">
       <input
         ref="searchInputRef"
         v-model="searchQuery"
@@ -115,6 +115,7 @@ const platform = ref<'darwin' | 'win32'>('darwin')
 const pluginName = ref('Plugin')
 const pluginLogo = ref<string | undefined>(undefined)
 const searchQuery = ref('')
+const subInputVisible = ref(true) // 子输入框是否可见
 const isPinned = ref(false)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 const acrylicLightOpacity = ref(78) // 亚克力明亮模式透明度（默认 78%）
@@ -239,7 +240,13 @@ onMounted(async () => {
 
     // 设置搜索框初始值
     searchQuery.value = data.searchQuery || ''
-    console.log('插件 Logo:', pluginLogo.value, '搜索框初始值:', searchQuery.value)
+
+    // 设置子输入框可见性
+    if (data.subInputVisible !== undefined) {
+      subInputVisible.value = data.subInputVisible
+    }
+
+    console.log('插件 Logo:', pluginLogo.value, '搜索框初始值:', searchQuery.value, '子输入框可见:', subInputVisible.value)
   })
 
   // 监听置顶状态变化
@@ -266,6 +273,12 @@ onMounted(async () => {
     console.log('聚焦搜索框')
     // 聚焦搜索框
     searchInputRef.value?.focus()
+  })
+
+  // 监听子输入框可见性更新（插件调用 removeSubInput 时触发）
+  window.electron.ipcRenderer.on('update-sub-input-visible', (visible: boolean) => {
+    console.log('更新子输入框可见性:', visible)
+    subInputVisible.value = visible
   })
 })
 

@@ -19,6 +19,7 @@ interface PluginViewInfo {
   height?: number
   subInputPlaceholder?: string
   subInputValue?: string // 搜索框的值
+  subInputVisible?: boolean // 子输入框是否可见
   logo?: string
   isDevelopment?: boolean
 }
@@ -88,7 +89,8 @@ class PluginManager {
           name: pluginConfig.name,
           logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
           path: pluginPath,
-          subInputPlaceholder: cached.subInputPlaceholder || '搜索'
+          subInputPlaceholder: cached.subInputPlaceholder || '搜索',
+          subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : true
         })
 
         // 缓存视图已经加载完成，直接通知渲染进程加载完成
@@ -153,6 +155,8 @@ class PluginManager {
           nodeIntegration: false,
           webSecurity: false,
           sandbox: false,
+          allowRunningInsecureContent: true,
+          webviewTag: true,
           preload: preloadPath,
           session: sess
         }
@@ -241,6 +245,7 @@ class PluginManager {
         name: pluginConfig.name,
         view: this.pluginView,
         subInputPlaceholder: '搜索', // 默认值
+        subInputVisible: true, // 默认显示子输入框
         logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
         isDevelopment: !!pluginInfoFromDB?.isDevelopment
       }
@@ -252,7 +257,8 @@ class PluginManager {
         name: pluginConfig.name,
         logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
         path: pluginPath,
-        subInputPlaceholder: pluginInfo.subInputPlaceholder
+        subInputPlaceholder: pluginInfo.subInputPlaceholder,
+        subInputVisible: pluginInfo.subInputVisible
       })
 
       const view = this.pluginView
@@ -530,6 +536,15 @@ class PluginManager {
     }
   }
 
+  // 设置子输入框可见性
+  public setSubInputVisible(pluginPath: string, visible: boolean): void {
+    const cached = this.pluginViews.find((v) => v.path === pluginPath)
+    if (cached) {
+      cached.subInputVisible = visible
+      console.log(`更新插件 ${pluginPath} 的子输入框可见性:`, visible)
+    }
+  }
+
   // 设置子输入框值
   public setSubInputValue(value: string): void {
     if (!this.pluginView) return
@@ -571,7 +586,7 @@ class PluginManager {
   ): Promise<string | undefined> {
     if (webContents.isDestroyed()) return undefined
 
-    const callId = Math.random().toString(36).substr(2, 9)
+    const callId = Math.random().toString(36).substring(2, 11)
     return new Promise((resolve) => {
       const timeout = setTimeout(() => resolve(undefined), 1000) // 1s timeout
 
@@ -806,6 +821,8 @@ class PluginManager {
           nodeIntegration: false,
           webSecurity: false,
           sandbox: false,
+          allowRunningInsecureContent: true,
+          webviewTag: true,
           preload: preloadPath,
           session: sess
         }
@@ -914,7 +931,8 @@ class PluginManager {
           title: pluginConfig.name,
           logo: cached.logo,
           searchQuery: cached.subInputValue || '',
-          searchPlaceholder: cached.subInputPlaceholder || '搜索...'
+          searchPlaceholder: cached.subInputPlaceholder || '搜索...',
+          subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : true
         }
       )
 

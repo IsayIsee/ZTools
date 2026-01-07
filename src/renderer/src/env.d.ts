@@ -111,7 +111,13 @@ declare global {
       onBackToSearch: (callback: () => void) => void
       onRedirectSearch: (callback: (data: { cmdName: string; payload?: any }) => void) => void
       onPluginOpened: (
-        callback: (plugin: { name: string; logo: string; path: string }) => void
+        callback: (plugin: {
+          name: string
+          logo: string
+          path: string
+          subInputPlaceholder?: string
+          subInputVisible?: boolean
+        }) => void
       ) => void
       onPluginLoaded: (callback: (plugin: { name: string; path: string }) => void) => void
       onPluginClosed: (callback: () => void) => void
@@ -198,6 +204,7 @@ declare global {
       onUpdateSubInputPlaceholder?: (
         callback: (data: { pluginPath: string; placeholder: string }) => void
       ) => void
+      onUpdateSubInputVisible?: (callback: (visible: boolean) => void) => void
       // 设置插件通知主渲染进程的事件
       openSettings: () => void
       onUpdatePlaceholder: (callback: (placeholder: string) => void) => void

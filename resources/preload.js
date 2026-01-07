@@ -80,6 +80,11 @@ window.ztools = {
     // 通知主进程更新 placeholder，并传递 isFocus 参数
     return await electron.ipcRenderer.invoke('set-sub-input', placeholder, isFocus)
   },
+  // 移除子输入框（隐藏）
+  removeSubInput: async () => {
+    console.log('插件移除子输入框')
+    return await electron.ipcRenderer.invoke('remove-sub-input')
+  },
   // 设置子输入框的值
   setSubInputValue: async (text) => {
     console.log('插件设置子输入框值:', text)

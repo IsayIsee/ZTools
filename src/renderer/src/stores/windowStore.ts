@@ -13,6 +13,7 @@ interface PluginInfo {
   logo: string
   path: string
   subInputPlaceholder?: string
+  subInputVisible?: boolean
 }
 
 export const DEFAULT_PLACEHOLDER = '搜索应用和指令 / 粘贴文件或图片'
@@ -46,6 +47,7 @@ export const useWindowStore = defineStore('window', () => {
 
   // 子输入框配置 (插件模式下使用)
   const subInputPlaceholder = ref('搜索')
+  const subInputVisible = ref(true) // 子输入框是否可见
 
   // 自动粘贴配置
   const autoPaste = ref<AutoPasteOption>('off')
@@ -98,6 +100,16 @@ export const useWindowStore = defineStore('window', () => {
         subInputPlaceholder.value = '搜索'
         console.log('使用默认 placeholder:', plugin.path)
       }
+
+      // 更新子输入框可见性
+      if (plugin.subInputVisible !== undefined) {
+        subInputVisible.value = plugin.subInputVisible
+        console.log('更新子输入框可见性:', plugin.subInputVisible)
+      } else {
+        // 默认显示
+        subInputVisible.value = true
+      }
+
       pluginLoading.value = true
     } else {
       pluginLoading.value = false
@@ -116,6 +128,12 @@ export const useWindowStore = defineStore('window', () => {
       subInputPlaceholder.value = newValue
       console.log('当前插件,立即更新 placeholder:', newValue)
     }
+  }
+
+  // 更新子输入框可见性
+  function updateSubInputVisible(visible: boolean): void {
+    subInputVisible.value = visible
+    console.log('更新子输入框可见性:', visible)
   }
 
   function setPluginLoading(isLoading: boolean): void {
@@ -446,6 +464,7 @@ export const useWindowStore = defineStore('window', () => {
     currentPlugin,
     pluginLoading,
     subInputPlaceholder,
+    subInputVisible,
     autoPaste,
     autoClear,
     theme,
@@ -461,6 +480,7 @@ export const useWindowStore = defineStore('window', () => {
     updateCurrentPlugin,
     setPluginLoading,
     updateSubInputPlaceholder,
+    updateSubInputVisible,
     updateAutoPaste,
     updateAutoClear,
     updateTheme,

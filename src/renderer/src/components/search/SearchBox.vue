@@ -70,7 +70,11 @@
         </div>
       </div>
       <!-- 输入框包装器：占位符和输入框在同一容器内 -->
-      <div class="input-wrapper">
+      <!-- 主搜索界面始终显示，插件模式下受 subInputVisible 控制 -->
+      <div
+        v-if="currentView !== 'plugin' || windowStore.subInputVisible"
+        class="input-wrapper"
+      >
         <span ref="measureRef" class="measure-text"></span>
         <!-- 独立的占位符显示 -->
         <div v-if="!modelValue && !isComposing" class="placeholder-text">

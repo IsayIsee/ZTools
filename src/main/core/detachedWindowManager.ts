@@ -129,6 +129,7 @@ class DetachedWindowManager {
       logo?: string
       searchQuery?: string // 搜索框当前值
       searchPlaceholder?: string // 搜索框占位符
+      subInputVisible?: boolean // 子输入框是否可见
     }
   ): BrowserWindow | null {
     try {
@@ -195,7 +196,8 @@ class DetachedWindowManager {
           platform: process.platform,
           title: options.title, // 窗口标题
           searchQuery: options.searchQuery || '', // 搜索框初始值
-          searchPlaceholder: options.searchPlaceholder || '搜索...' // 搜索框占位符
+          searchPlaceholder: options.searchPlaceholder || '搜索...', // 搜索框占位符
+          subInputVisible: options.subInputVisible !== undefined ? options.subInputVisible : true // 子输入框可见性
         })
 
         // 注入全局滚动条样式到独立窗口的标题栏

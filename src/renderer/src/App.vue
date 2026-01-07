@@ -426,7 +426,6 @@ onMounted(async () => {
   window.ztools.onPluginOpened((plugin) => {
     console.log('插件已打开:', plugin)
     windowStore.updateCurrentPlugin(plugin)
-    windowStore.setPluginLoading(true)
     // 清除所有粘贴内容
     pastedImageData.value = null
     pastedFilesData.value = null
@@ -457,6 +456,12 @@ onMounted(async () => {
       windowStore.updateSubInputPlaceholder(data.placeholder)
     }
   )
+
+  // 监听子输入框可见性更新事件（插件调用 removeSubInput 时触发）
+  window.ztools.onUpdateSubInputVisible?.((visible: boolean) => {
+    console.log('收到更新子输入框可见性事件:', visible)
+    windowStore.updateSubInputVisible(visible)
+  })
 
   // 监听设置子输入框值事件
   window.ztools.onSetSubInputValue((text: string) => {

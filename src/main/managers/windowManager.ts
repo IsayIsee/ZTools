@@ -86,6 +86,7 @@ class WindowManager {
       title: 'ZTools',
       width: WINDOW_WIDTH,
       height: WINDOW_INITIAL_HEIGHT,
+      alwaysOnTop: true,
       // 基于最大窗口高度计算居中位置，确保窗口扩展时不会超出屏幕
       x: displayX + Math.floor((width - WINDOW_WIDTH) / 2),
       y: displayY + Math.floor((height - MAX_WINDOW_HEIGHT) / 2),

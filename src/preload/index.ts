@@ -180,6 +180,9 @@ const api = {
   ) => {
     ipcRenderer.on('update-sub-input-placeholder', (_event, data) => callback(data))
   },
+  onUpdateSubInputVisible: (callback: (visible: boolean) => void) => {
+    ipcRenderer.on('update-sub-input-visible', (_event, visible) => callback(visible))
+  },
   // 数据库相关（主程序专用，直接操作 ZTOOLS 命名空间）
   dbPut: (key: string, data: any) => ipcRenderer.invoke('ztools:db-put', key, data),
   dbGet: (key: string) => ipcRenderer.invoke('ztools:db-get', key),
@@ -363,6 +366,7 @@ declare global {
       onUpdateSubInputPlaceholder: (
         callback: (data: { pluginPath: string; placeholder: string }) => void
       ) => void
+      onUpdateSubInputVisible: (callback: (visible: boolean) => void) => void
       // 数据库相关（主程序专用，直接操作 ZTOOLS 命名空间）
       dbPut: (key: string, data: any) => Promise<any>
       dbGet: (key: string) => Promise<any>
