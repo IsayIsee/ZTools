@@ -98,16 +98,21 @@ export async function scanApplications(): Promise<Command[]> {
         // 获取图标文件路径
         const iconPath = await getIconFile(appPath)
 
+        // 使用 ztools-icon:// 协议（与 Windows 保持一致）
+        const iconUrl = `ztools-icon://${encodeURIComponent(iconPath)}`
+
         return {
           name,
           path: appPath,
-          icon: iconPath
+          icon: iconUrl
         }
       } catch {
+        const defaultIconPath =
+          '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns'
         return {
           name: path.basename(appPath, '.app'),
           path: appPath,
-          icon: '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns'
+          icon: `ztools-icon://${encodeURIComponent(defaultIconPath)}`
         }
       }
     })

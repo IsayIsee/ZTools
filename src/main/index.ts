@@ -1,7 +1,10 @@
 import { platform } from '@electron-toolkit/utils'
+import { exec } from 'child_process'
 import { app, BrowserWindow, protocol, session } from 'electron'
 import log from 'electron-log'
+import { promises as fs } from 'fs'
 import path from 'path'
+import { promisify } from 'util'
 import { Worker } from 'worker_threads'
 import api from './api/index'
 import appWatcher from './appWatcher'
@@ -10,6 +13,8 @@ import { loadInternalPlugins } from './core/internalPluginLoader'
 
 import pluginManager from './managers/pluginManager'
 import windowManager from './managers/windowManager'
+
+const execAsync = promisify(exec)
 
 // ========== 关键修复：注册自定义协议为特权协议 ==========
 // 必须在 app.ready 之前调用，否则渲染进程会因为安全策略拒绝加载
@@ -119,10 +124,10 @@ export function registerIconProtocolForSession(targetSession: Electron.Session):
   targetSession.protocol.handle('ztools-icon', async (request) => {
     try {
       const urlPath = request.url.replace('ztools-icon://', '')
-      const exePath = decodeURIComponent(urlPath)
+      const iconPath = decodeURIComponent(urlPath)
 
       // A. 命中内存缓存：直接返回
-      const cached = iconMemoryCache.get(exePath)
+      const cached = iconMemoryCache.get(iconPath)
       if (cached) {
         return new Response(new Uint8Array(cached), {
           status: 200,
@@ -134,27 +139,59 @@ export function registerIconProtocolForSession(targetSession: Electron.Session):
         })
       }
 
-      // B. 未命中：发送给 Worker 提取
-      if (!iconWorker) {
-        initIconWorker()
+      // B. 未命中：根据平台提取图标
+      let buffer: Buffer
+
+      if (process.platform === 'darwin') {
+        // macOS: 使用 sips 转换 ICNS 为 PNG
+        const tempDir = path.join(app.getPath('temp'), 'ztools-icons')
+        await fs.mkdir(tempDir, { recursive: true })
+
+        // 使用图标路径的哈希作为临时文件名
+        const crypto = await import('crypto')
+        const hash = crypto.createHash('md5').update(iconPath).digest('hex')
+        const tempPngPath = path.join(tempDir, `${hash}.png`)
+
+        // 检查临时文件是否已存在
+        try {
+          await fs.access(tempPngPath)
+          // 文件存在，直接读取
+          buffer = await fs.readFile(tempPngPath)
+        } catch {
+          // 文件不存在，使用 sips 转换
+          try {
+            await execAsync(
+              `sips -s format png '${iconPath}' --out '${tempPngPath}' --resampleHeightWidth 64 64 2>/dev/null`
+            )
+            buffer = await fs.readFile(tempPngPath)
+          } catch (error) {
+            console.error('sips 转换失败:', iconPath, error)
+            throw new Error('Icon conversion failed')
+          }
+        }
+      } else {
+        // Windows: 使用 Worker + extract-file-icon
+        if (!iconWorker) {
+          initIconWorker()
+        }
+
+        buffer = await new Promise<Buffer>((resolve, reject) => {
+          const taskId = `${Date.now()}-${Math.random()}`
+          workerPendingTasks.set(taskId, { resolve, reject })
+          iconWorker?.postMessage({ id: taskId, exePath: iconPath })
+
+          // 超时处理（10秒）
+          setTimeout(() => {
+            if (workerPendingTasks.has(taskId)) {
+              workerPendingTasks.delete(taskId)
+              reject(new Error('Icon extraction timeout'))
+            }
+          }, 10000)
+        })
       }
 
-      const buffer = await new Promise<Buffer>((resolve, reject) => {
-        const taskId = `${Date.now()}-${Math.random()}`
-        workerPendingTasks.set(taskId, { resolve, reject })
-        iconWorker?.postMessage({ id: taskId, exePath })
-
-        // 超时处理（10秒）
-        setTimeout(() => {
-          if (workerPendingTasks.has(taskId)) {
-            workerPendingTasks.delete(taskId)
-            reject(new Error('Icon extraction timeout'))
-          }
-        }, 10000)
-      })
-
       // 写入内存缓存
-      iconMemoryCache.set(exePath, buffer)
+      iconMemoryCache.set(iconPath, buffer)
 
       return new Response(new Uint8Array(buffer), {
         status: 200,
