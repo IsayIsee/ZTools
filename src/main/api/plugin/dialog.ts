@@ -1,4 +1,5 @@
-import { ipcMain, dialog, BrowserWindow, app } from 'electron'
+import { ipcMain, dialog, app } from 'electron'
+import detachedWindowManager from '../../core/detachedWindowManager'
 
 /**
  * 对话框API - 插件专用
@@ -66,12 +67,15 @@ export class PluginDialogAPI {
     // 显示文件保存对话框
     ipcMain.on('show-save-dialog', (event, options: any) => {
       try {
-        const win = BrowserWindow.fromWebContents(event.sender) || this.mainWindow
-        if (!win) {
+        // 判断插件是在主窗口还是分离窗口
+        const targetWindow =
+          detachedWindowManager.getWindowByPluginWebContents(event.sender.id) || this.mainWindow
+
+        if (!targetWindow) {
           event.returnValue = undefined
           return
         }
-        const result = dialog.showSaveDialogSync(win, options)
+        const result = dialog.showSaveDialogSync(targetWindow, options)
         event.returnValue = result
       } catch (error) {
         console.error('显示文件保存对话框失败:', error)
@@ -82,7 +86,15 @@ export class PluginDialogAPI {
     // 显示文件打开对话框
     ipcMain.on('show-open-dialog', (event, options: Electron.OpenDialogSyncOptions) => {
       try {
-        const result = dialog.showOpenDialogSync(this.mainWindow!, options)
+        // 判断插件是在主窗口还是分离窗口
+        const targetWindow =
+          detachedWindowManager.getWindowByPluginWebContents(event.sender.id) || this.mainWindow
+
+        if (!targetWindow) {
+          event.returnValue = []
+          return
+        }
+        const result = dialog.showOpenDialogSync(targetWindow, options)
         event.returnValue = result || []
       } catch (error) {
         console.error('显示文件打开对话框失败:', error)

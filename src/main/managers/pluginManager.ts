@@ -989,7 +989,7 @@ class PluginManager {
     path: string
     isInternal: boolean
   } | null {
-    // 遍历缓存的插件视图
+    // 1. 先检查主窗口中的插件视图
     for (const pluginViewInfo of this.pluginViews) {
       if (pluginViewInfo.view.webContents === webContents) {
         return {
@@ -999,6 +999,19 @@ class PluginManager {
         }
       }
     }
+
+    // 2. 检查分离窗口中的插件
+    const detachedWindows = detachedWindowManager.getAllWindows()
+    for (const windowInfo of detachedWindows) {
+      if (windowInfo.view.webContents === webContents) {
+        return {
+          name: windowInfo.pluginName,
+          path: windowInfo.pluginPath,
+          isInternal: isInternalPlugin(windowInfo.pluginName)
+        }
+      }
+    }
+
     return null
   }
 
