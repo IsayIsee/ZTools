@@ -4,6 +4,8 @@ export interface Command {
   name: string
   path: string
   icon?: string
+  type?: string
+  subType?: string
 }
 
 const api = {
@@ -12,7 +14,7 @@ const api = {
   isWindows: () => ipcRenderer.invoke('is-windows'),
   launch: (options: {
     path: string
-    type?: 'direct' | 'plugin'
+    type?: 'direct' | 'plugin' | 'builtin'
     featureCode?: string
     param?: any
     name?: string
@@ -260,10 +262,12 @@ declare global {
       isWindows: () => Promise<boolean>
       launch: (options: {
         path: string
-        type?: 'direct' | 'plugin'
+        type?: 'direct' | 'plugin' | 'builtin'
         featureCode?: string
         param?: any
         name?: string
+        cmdType?: string
+        confirmDialog?: any
       }) => Promise<void>
       hideWindow: () => void
       resizeWindow: (height: number) => void

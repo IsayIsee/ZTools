@@ -306,17 +306,22 @@ export const useCommandDataStore = defineStore('commandData', () => {
       const plugins = await window.ztools.getPlugins()
 
       // 处理本地应用指令
-      const appItems = rawApps.map((app) => ({
-        ...app,
-        type: 'direct' as const,
-        subType: 'app' as const,
-        pinyin: pinyin(app.name, { toneType: 'none', type: 'string' })
-          .replace(/\s+/g, '')
-          .toLowerCase(),
-        pinyinAbbr: pinyin(app.name, { pattern: 'first', toneType: 'none', type: 'string' })
-          .replace(/\s+/g, '')
-          .toLowerCase()
-      }))
+      const appItems = rawApps.map((app) => {
+        // 类型断言：后端可能返回扩展字段（type, subType）
+        const extendedApp = app as any
+        return {
+          ...app,
+          // 保留已有的 type 和 subType（用于内置指令），否则使用默认值
+          type: extendedApp.type || ('direct' as const),
+          subType: extendedApp.subType || ('app' as const),
+          pinyin: pinyin(app.name, { toneType: 'none', type: 'string' })
+            .replace(/\s+/g, '')
+            .toLowerCase(),
+          pinyinAbbr: pinyin(app.name, { pattern: 'first', toneType: 'none', type: 'string' })
+            .replace(/\s+/g, '')
+            .toLowerCase()
+        }
+      })
 
       // 处理插件：每个 cmd 转换为一个独立指令
       const pluginItems: Command[] = [] // 普通插件指令

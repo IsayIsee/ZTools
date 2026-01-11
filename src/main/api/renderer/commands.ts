@@ -1,6 +1,7 @@
 import { app, ipcMain, shell } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
+import clearIcon from '../../../../resources/icons/clear.png?asset'
 import { normalizeIconPath } from '../../common/iconUtils'
 import { launchApp, type ConfirmDialogOptions } from '../../core/commandLauncher'
 import { scanApplications } from '../../core/commandScanner'
@@ -143,15 +144,27 @@ export class AppsAPI {
     // 注意：windowsScanner 已经在扫描时生成了 ztools-icon:// 协议 URL
     // 不需要再进行图标提取或文件转换，直接使用扫描结果即可
 
+    // 添加 Clear 内置指令（插入到最前面）
+    const clearCommand = {
+      name: 'Clear',
+      path: 'builtin:clear',
+      icon: `file:///${clearIcon}`,
+      type: 'builtin',
+      subType: 'clear'
+    }
+
+    // 将 clear 指令插入到最前面
+    const allApps = [clearCommand, ...apps]
+
     // 保存到数据库缓存
     try {
-      await databaseAPI.dbPut('cached-commands', apps)
+      await databaseAPI.dbPut('cached-commands', allApps)
       console.log('应用列表已缓存到数据库')
     } catch (error) {
       console.error('缓存应用列表失败:', error)
     }
 
-    return apps
+    return allApps
   }
 
   /**
@@ -180,7 +193,7 @@ export class AppsAPI {
    */
   public async launch(options: {
     path: string
-    type?: 'direct' | 'plugin'
+    type?: 'direct' | 'plugin' | 'builtin'
     featureCode?: string
     param?: any
     name?: string // cmd 名称（用于历史记录显示）
@@ -192,6 +205,24 @@ export class AppsAPI {
     this.launchParam = param || {}
 
     try {
+      // 处理 Clear 内置指令
+      if (appPath === 'builtin:clear') {
+        console.log('执行 Clear 指令：停止所有插件')
+
+        // 停止所有正在运行的插件
+        if (this.pluginManager) {
+          this.pluginManager.killAllPlugins()
+        }
+
+        // 添加到历史记录
+        await this.addToHistory({ path: appPath, type: 'builtin', name: name || 'Clear', cmdType: 'text' })
+
+        // 通知渲染进程清空搜索框等
+        this.mainWindow?.webContents.send('app-launched')
+
+        return { success: true }
+      }
+
       // 判断是插件还是直接启动
       if (type === 'plugin') {
         // 如果没有传 featureCode，自动查找第一个非匹配 feature
@@ -323,7 +354,7 @@ export class AppsAPI {
    */
   private async addToHistory(options: {
     path: string
-    type?: 'app' | 'plugin'
+    type?: 'app' | 'plugin' | 'builtin'
     featureCode?: string
     param?: any
     name?: string // cmd 名称（用于历史记录显示）
@@ -339,11 +370,16 @@ export class AppsAPI {
       // 获取应用/插件信息
       let appInfo: any = null
 
-      // 特殊指令不需要查找应用信息，前端会处理显示
-      if (appPath.startsWith('special:')) {
+      // 特殊指令和内置指令不需要查找应用信息，前端会处理显示
+      if (appPath.startsWith('special:') || appPath.startsWith('builtin:')) {
+        // 尝试从缓存的应用列表中获取完整信息（包括图标）
+        const cachedApps = await databaseAPI.dbGet('cached-commands')
+        const cachedBuiltin = cachedApps?.find((a: any) => a.path === appPath)
+
         appInfo = {
           name: cmdName || appPath,
           path: appPath,
+          icon: cachedBuiltin?.icon, // 从缓存中获取图标
           type: 'builtin',
           cmdType: cmdType || 'text'
         }
