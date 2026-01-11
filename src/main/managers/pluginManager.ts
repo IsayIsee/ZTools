@@ -1,6 +1,7 @@
 import { BrowserWindow, session, WebContents, WebContentsView } from 'electron'
 import fsSync from 'fs'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import hideWindowHtml from '../../../resources/hideWindow.html?asset'
 
 import mainPreload from '../../../resources/preload.js?asset'
@@ -88,7 +89,7 @@ class PluginManager {
         // 通知渲染进程插件已打开
         this.mainWindow?.webContents.send('plugin-opened', {
           name: pluginConfig.name,
-          logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
+          logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
           path: pluginPath,
           subInputPlaceholder: cached.subInputPlaceholder || '搜索',
           subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : true
@@ -123,7 +124,7 @@ class PluginManager {
       if (isConfigHeadless) {
         // 无界面插件，加载空白页面
         console.log('检测到无界面插件(Config):', pluginConfig.name)
-        pluginUrl = 'file:///' + hideWindowHtml
+        pluginUrl = pathToFileURL(hideWindowHtml).href
       } else if (pluginInfoFromDB?.isDevelopment && pluginConfig.development?.main) {
         // 开发中插件，使用 development.main
         console.log('开发中插件，使用 development.main:', pluginConfig.development.main)
@@ -134,7 +135,7 @@ class PluginManager {
         pluginUrl = pluginConfig.main
       } else {
         // 生产模式
-        pluginUrl = `file:///${path.join(pluginPath, pluginConfig.main)}`
+        pluginUrl = pathToFileURL(path.join(pluginPath, pluginConfig.main)).href
       }
 
       // 确定 preload 脚本路径
@@ -253,7 +254,7 @@ class PluginManager {
         view: this.pluginView,
         subInputPlaceholder: '搜索', // 默认值
         subInputVisible: true, // 默认显示子输入框
-        logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
+        logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
         isDevelopment: !!pluginInfoFromDB?.isDevelopment
       }
       this.pluginViews.push(pluginInfo)
@@ -262,7 +263,7 @@ class PluginManager {
       // 提前通知渲染进程插件已打开
       this.mainWindow?.webContents.send('plugin-opened', {
         name: pluginConfig.name,
-        logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
+        logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
         path: pluginPath,
         subInputPlaceholder: pluginInfo.subInputPlaceholder,
         subInputVisible: pluginInfo.subInputVisible
@@ -806,7 +807,7 @@ class PluginManager {
         pluginUrl = pluginConfig.main
       } else {
         // 生产模式
-        pluginUrl = `file:///${path.join(pluginPath, pluginConfig.main)}`
+        pluginUrl = pathToFileURL(path.join(pluginPath, pluginConfig.main)).href
       }
 
       // 确定 preload 脚本路径
@@ -869,7 +870,7 @@ class PluginManager {
           width: windowWidth,
           height: viewHeight,
           title: pluginConfig.name,
-          logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
+          logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
           searchQuery: '',
           searchPlaceholder: '搜索...'
         }

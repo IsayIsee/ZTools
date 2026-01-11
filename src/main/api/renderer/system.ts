@@ -1,6 +1,7 @@
 import { app, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import clipboardManager from '../../managers/clipboardManager'
 import appleScriptHelper from '../../utils/appleScriptHelper'
 import { isWindows11 } from '../../utils/windowUtils'
@@ -224,7 +225,7 @@ export class SystemAPI {
       const avatarPath = path.join(AVATAR_DIR, fileName)
       await fs.copyFile(originalPath, avatarPath)
 
-      return { success: true, path: `file:///${avatarPath}` }
+      return { success: true, path: pathToFileURL(avatarPath).href }
     } catch (error: unknown) {
       console.error('选择头像失败:', error)
       return { success: false, error: error instanceof Error ? error.message : '未知错误' }

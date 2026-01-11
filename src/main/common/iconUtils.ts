@@ -1,4 +1,5 @@
 import path from 'path'
+import { pathToFileURL } from 'url'
 
 /**
  * 标准化图标路径
@@ -24,5 +25,5 @@ export function normalizeIconPath(iconPath: string, basePath: string): string {
 
   // 否则认为是相对路径，转换为绝对路径
   const absolutePath = path.join(basePath, iconPath)
-  return `file:///${absolutePath}`
+  return pathToFileURL(absolutePath).href
 }

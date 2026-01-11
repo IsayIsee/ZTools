@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, WebContentsView } from 'electron'
 import path from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import { v4 as uuidv4 } from 'uuid'
 import databaseAPI from '../api/shared/database'
 import { applyWindowMaterial } from '../utils/windowUtils'
@@ -183,7 +183,7 @@ class DetachedWindowManager {
       const titlebarUrl =
         process.env.NODE_ENV === 'development'
           ? 'http://localhost:5174/detached-titlebar.html'
-          : `file://${path.join(__dirname, '../../out/renderer/detached-titlebar.html')}`
+          : pathToFileURL(path.join(__dirname, '../../out/renderer/detached-titlebar.html')).href
 
       win.loadURL(titlebarUrl)
 

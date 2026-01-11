@@ -1,6 +1,7 @@
 import { app, ipcMain, shell } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import clearIcon from '../../../../resources/icons/clear.png?asset'
 import { normalizeIconPath } from '../../common/iconUtils'
 import { launchApp, type ConfirmDialogOptions } from '../../core/commandLauncher'
@@ -148,7 +149,7 @@ export class AppsAPI {
     const clearCommand = {
       name: 'Clear',
       path: 'builtin:clear',
-      icon: `file:///${clearIcon}`,
+      icon: pathToFileURL(clearIcon).href,
       type: 'builtin',
       subType: 'clear'
     }

@@ -204,7 +204,7 @@ export class PluginsAPI {
         name: pluginConfig.name,
         version: pluginConfig.version,
         description: pluginConfig.description || '',
-        logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
+        logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
         main: pluginConfig.main,
         preload: pluginConfig.preload,
         features: pluginConfig.features,
@@ -322,7 +322,7 @@ export class PluginsAPI {
         name: pluginConfig.name,
         version: pluginConfig.version,
         description: pluginConfig.description || '',
-        logo: pluginConfig.logo ? 'file:///' + path.join(pluginPath, pluginConfig.logo) : '',
+        logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
         main: pluginConfig?.development?.main,
         preload: pluginConfig.preload,
         features: pluginConfig.features,
@@ -450,7 +450,7 @@ export class PluginsAPI {
         version: pluginConfig.version || oldPlugin.version,
         description: pluginConfig.description || oldPlugin.description,
         logo: pluginConfig.logo
-          ? 'file:///' + path.join(pluginPath, pluginConfig.logo)
+          ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href
           : oldPlugin.logo,
         features: pluginConfig.features || oldPlugin.features,
         main: pluginConfig.main || oldPlugin.main

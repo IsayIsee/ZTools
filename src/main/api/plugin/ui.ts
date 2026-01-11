@@ -1,4 +1,5 @@
 import { ipcMain, nativeTheme, Notification } from 'electron'
+import { fileURLToPath } from 'url'
 import detachedWindowManager from '../../core/detachedWindowManager'
 
 /**
@@ -66,7 +67,7 @@ export class PluginUIAPI {
       if (pluginInfo) {
         options.title = pluginInfo.name
         if (pluginInfo.logo) {
-          options.icon = pluginInfo.logo.replace('file:///', '')
+          options.icon = fileURLToPath(pluginInfo.logo)
         }
       }
 

@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { app, ipcMain, nativeImage } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
 const analysisCache = new Map<string, ImageAnalysisResult>()
 
@@ -34,26 +35,12 @@ async function analyzeImage(imagePath: string): Promise<ImageAnalysisResult> {
 
       // 处理 file:// 协议
       if (filePath.startsWith('file:')) {
-        // 移除 file: 前缀
-        filePath = filePath
-          .replace(/^file:\/\/\//, '') // file:///C:/path -> C:/path
-          .replace(/^file:\/\//, '') // file://path -> path
-          .replace(/^file:\\/, '') // file:\path -> path (Windows 特殊情况)
-          .replace(/^file:/, '') // file:path -> path
-
-        // 如果是 macOS，需要判断是否为/开头，如果不是需要加/
-        if (process.platform === 'darwin') {
-          if (!filePath.startsWith('/')) {
-            filePath = '/' + filePath
-          }
-        }
-
-        // 解码 URL 编码的字符（如 %20 -> 空格）
-        filePath = decodeURIComponent(filePath)
-
-        // 在 Windows 上，确保路径格式正确
-        if (process.platform === 'win32') {
-          filePath = filePath.replace(/\//g, '\\')
+        try {
+          // 使用 fileURLToPath 安全地将 file:// URL 转换为文件路径
+          filePath = fileURLToPath(filePath)
+        } catch (error) {
+          console.error('无效的 file:// URL:', filePath, error)
+          return { isSimpleIcon: false, mainColor: null, isDark: false, needsAdaptation: false }
         }
       }
 

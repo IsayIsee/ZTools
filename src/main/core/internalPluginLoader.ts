@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import fsSync from 'fs'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import api from '../api/index'
 import { INTERNAL_PLUGIN_NAMES, getInternalPluginPath } from './internalPlugins'
 
@@ -48,7 +49,7 @@ export async function loadInternalPlugins(): Promise<void> {
         name: pluginConfig.name,
         version: pluginConfig.version,
         description: pluginConfig.description || '',
-        logo: logoPath ? `file:///${logoPath}` : '',
+        logo: logoPath ? pathToFileURL(logoPath).href : '',
         path: effectivePluginPath, // 保存有效路径（开发模式下是 public 目录）
         features: pluginConfig.features || [],
         isDevelopment: isDev,

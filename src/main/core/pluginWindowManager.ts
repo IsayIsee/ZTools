@@ -1,5 +1,6 @@
 import { BrowserWindow, BrowserWindowConstructorOptions, session } from 'electron'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import { v4 as uuidv4 } from 'uuid'
 import mainPreload from '../../../resources/preload.js?asset'
 import { GLOBAL_SCROLLBAR_CSS } from './globalStyles'
@@ -80,7 +81,7 @@ class PluginWindowManager {
     // 处理 URL (如果是相对路径)
     let loadUrl = url
     if (!url.startsWith('http') && !url.startsWith('file:///')) {
-      loadUrl = `file:///${path.join(pluginPath, url)}`
+      loadUrl = pathToFileURL(path.join(pluginPath, url)).href
     }
 
     win.loadURL(loadUrl)
