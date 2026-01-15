@@ -691,6 +691,7 @@ async function handleAppContextMenu(
         pinyinAbbr: app.pinyinAbbr,
         type: app.type,
         featureCode: app.featureCode,
+        pluginName: app.pluginName,
         pluginExplain: app.pluginExplain
       })}`,
       label: '固定到顶部'
@@ -698,7 +699,7 @@ async function handleAppContextMenu(
   }
 
   // 如果是插件，添加插件设置菜单
-  if (app.type === 'plugin') {
+  if (app.type === 'plugin' && app.pluginName) {
     // 从数据库读取配置
     let outKillPlugins: string[] = []
     let autoDetachPlugins: string[] = []
@@ -715,20 +716,20 @@ async function handleAppContextMenu(
       console.log('读取配置失败:', error)
     }
 
-    const isAutoKill = outKillPlugins.includes(app.name)
-    const isAutoDetach = autoDetachPlugins.includes(app.name)
+    const isAutoKill = outKillPlugins.includes(app.pluginName)
+    const isAutoDetach = autoDetachPlugins.includes(app.pluginName)
 
     menuItems.push({
       label: '插件设置',
       submenu: [
         {
-          id: `toggle-auto-kill:${app.name}`,
+          id: `toggle-auto-kill:${app.pluginName}`,
           label: '退出到后台立即结束运行',
           type: 'checkbox',
           checked: isAutoKill
         },
         {
-          id: `toggle-auto-detach:${app.name}`,
+          id: `toggle-auto-detach:${app.pluginName}`,
           label: '自动分离为独立窗口',
           type: 'checkbox',
           checked: isAutoDetach

@@ -65,6 +65,7 @@ export interface Command {
   type: CommandType // 指令类型
   subType?: CommandSubType // 子类型（用于区分 direct 类型）
   featureCode?: string // 插件功能代码（用于启动时指定功能）
+  pluginName?: string // 插件名称（仅插件类型有效）
   pluginExplain?: string // 插件功能说明
   matchCmd?: MatchCmd // 匹配指令配置（regex 或 over 或 img 或 files）
   cmdType?: 'text' | 'regex' | 'over' | 'img' | 'files' // cmd类型
@@ -361,6 +362,7 @@ export const useCommandDataStore = defineStore('commandData', () => {
               icon: plugin.logo,
               type: 'plugin',
               featureCode: defaultFeatureCode,
+              pluginName: plugin.name,
               pinyin: pinyin(plugin.name, { toneType: 'none', type: 'string' })
                 .replace(/\s+/g, '')
                 .toLowerCase(),
@@ -395,6 +397,7 @@ export const useCommandDataStore = defineStore('commandData', () => {
                     icon: featureIcon,
                     type: 'plugin',
                     featureCode: feature.code,
+                    pluginName: plugin.name,
                     pluginExplain: feature.explain,
                     matchCmd: cmd,
                     cmdType: cmd.type, // 标记匹配类型
@@ -417,6 +420,7 @@ export const useCommandDataStore = defineStore('commandData', () => {
                     icon: featureIcon,
                     type: 'plugin',
                     featureCode: feature.code,
+                    pluginName: plugin.name,
                     pluginExplain: feature.explain,
                     cmdType: 'text', // 标记为文本类型
                     pinyin: pinyin(cmdName, { toneType: 'none', type: 'string' })

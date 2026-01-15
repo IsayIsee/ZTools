@@ -438,6 +438,7 @@ export class AppsAPI {
               icon: featureIcon,
               type: 'plugin',
               featureCode: featureCode,
+              pluginName: pluginConfig.name, // ✅ 添加插件名称
               pluginExplain: feature?.explain || '',
               cmdType: cmdType || 'text' // ✅ 添加 cmdType
             }
@@ -724,7 +725,8 @@ export class AppsAPI {
         featureCode: app.featureCode,
         pluginExplain: app.pluginExplain,
         pinyin: app.pinyin,
-        pinyinAbbr: app.pinyinAbbr
+        pinyinAbbr: app.pinyinAbbr,
+        pluginName: app.pluginName
       })
 
       await databaseAPI.dbPut('pinned-commands', pinnedApps)
