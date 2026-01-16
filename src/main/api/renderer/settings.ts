@@ -63,9 +63,9 @@ export class SettingsAPI {
           const success = updateShortcut(data.hotkey)
           console.log('启动时应用快捷键设置:', data.hotkey, success ? '成功' : '失败')
         }
-        // 应用托盘图标显示设置
-        windowManager.setTrayIconVisible(data.showTrayIcon)
-        console.log('启动时应用托盘图标显示设置:', data.showTrayIcon)
+        // 应用托盘图标显示设置（默认显示）
+        windowManager.setTrayIconVisible(data.showTrayIcon ?? true)
+        console.log('启动时应用托盘图标显示设置:', data.showTrayIcon ?? true)
         // 应用主题设置
         if (data.theme) {
           this.setTheme(data.theme)
