@@ -128,7 +128,18 @@
               :key="feature.code"
               :feature="feature"
             >
-              <CommandTag v-for="(cmd, idx) in feature.textCmds" :key="idx" :command="cmd" />
+              <TagDropdown
+                v-for="(cmd, idx) in feature.textCmds"
+                :key="idx"
+                :menu-items="getMenuItems(isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, 'text'))"
+                @select="(key) => handleMenuSelect(key, selectedSource?.name || '', feature.code, cmd.name, 'text')"
+              >
+                <CommandTag
+                  :command="cmd"
+                  :disabled="isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, 'text')"
+                  show-arrow
+                />
+              </TagDropdown>
             </FeatureCard>
           </template>
         </div>
@@ -147,7 +158,18 @@
             :key="feature.code"
             :feature="feature"
           >
-            <CommandTag v-for="(cmd, idx) in feature.matchCmds" :key="idx" :command="cmd" />
+            <TagDropdown
+              v-for="(cmd, idx) in feature.matchCmds"
+              :key="idx"
+              :menu-items="getMenuItems(isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, cmd.type))"
+              @select="(key) => handleMenuSelect(key, selectedSource?.name || '', feature.code, cmd.name, cmd.type)"
+            >
+              <CommandTag
+                :command="cmd"
+                :disabled="isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, cmd.type)"
+                show-arrow
+              />
+            </TagDropdown>
           </FeatureCard>
         </div>
       </div>
@@ -162,6 +184,7 @@ import AdaptiveIcon from '../common/AdaptiveIcon.vue'
 import CommandCard from './common/CommandCard.vue'
 import CommandTag from './common/CommandTag.vue'
 import FeatureCard from './common/FeatureCard.vue'
+import TagDropdown, { type MenuItem } from './common/TagDropdown.vue'
 
 // 定义 Command 类型（从 commandDataStore 复制）
 export type CommandType = 'direct' | 'plugin' | 'builtin'
@@ -200,6 +223,103 @@ const regexCommands = ref<Command[]>([])
 const plugins = ref<any[]>([])
 const selectedSource = ref<Source | null>(null)
 const activeTab = ref<'text' | 'match'>('text')
+
+// 禁用指令列表
+const disabledCommands = ref<string[]>([])
+const DISABLED_COMMANDS_KEY = 'disable-commands'
+
+// 生成指令唯一标识
+// 格式: pluginName:featureCode:cmdName:cmdType
+function getCommandId(
+  pluginName: string,
+  featureCode: string,
+  cmdName: string,
+  cmdType: string
+): string {
+  return `${pluginName}:${featureCode}:${cmdName}:${cmdType}`
+}
+
+// 检查指令是否被禁用
+function isCommandDisabled(
+  pluginName: string,
+  featureCode: string,
+  cmdName: string,
+  cmdType: string
+): boolean {
+  const id = getCommandId(pluginName, featureCode, cmdName, cmdType)
+  return disabledCommands.value.includes(id)
+}
+
+// 切换指令禁用状态
+async function toggleCommandDisabled(
+  pluginName: string,
+  featureCode: string,
+  cmdName: string,
+  cmdType: string
+): Promise<void> {
+  const id = getCommandId(pluginName, featureCode, cmdName, cmdType)
+  const index = disabledCommands.value.indexOf(id)
+
+  if (index === -1) {
+    // 添加到禁用列表
+    disabledCommands.value.push(id)
+  } else {
+    // 从禁用列表移除
+    disabledCommands.value.splice(index, 1)
+  }
+
+  // 保存到数据库
+  await saveDisabledCommands()
+}
+
+// 保存禁用指令列表到数据库
+async function saveDisabledCommands(): Promise<void> {
+  try {
+    // 将 Vue 响应式数组转换为普通数组，避免 IPC 克隆错误
+    const plainArray = [...disabledCommands.value]
+    await window.ztools.internal.dbPut(DISABLED_COMMANDS_KEY, plainArray)
+    // 通知主渲染进程禁用指令列表已更改
+    await window.ztools.internal.notifyDisabledCommandsChanged()
+  } catch (error) {
+    console.error('保存禁用指令列表失败:', error)
+  }
+}
+
+// 加载禁用指令列表
+async function loadDisabledCommands(): Promise<void> {
+  try {
+    const data = await window.ztools.internal.dbGet(DISABLED_COMMANDS_KEY)
+    if (data && Array.isArray(data)) {
+      disabledCommands.value = data
+    }
+  } catch (error) {
+    console.error('加载禁用指令列表失败:', error)
+  }
+}
+
+// 下拉菜单项
+function getMenuItems(isDisabled: boolean): MenuItem[] {
+  return [
+    {
+      key: 'toggle',
+      label: isDisabled ? '启用指令' : '禁用指令',
+      danger: !isDisabled
+    }
+  ]
+}
+
+// 处理下拉菜单选择
+function handleMenuSelect(
+  key: string,
+  pluginName: string,
+  featureCode: string,
+  cmdName: string,
+  cmdType: string
+): void {
+  if (key === 'toggle') {
+    toggleCommandDisabled(pluginName, featureCode, cmdName, cmdType)
+  }
+}
 
 // 内置插件名称列表（与主进程保持一致）
 const INTERNAL_PLUGIN_NAMES = ['setting', 'system']
@@ -383,6 +503,8 @@ function selectSource(source: Source): void {
 
 // 初始化
 onMounted(async () => {
+  // 加载禁用指令列表
+  await loadDisabledCommands()
   // 加载指令数据
   await loadCommands()
   // 加载插件列表（包括内置插件）

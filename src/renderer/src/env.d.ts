@@ -126,6 +126,7 @@ declare global {
       onAppsChanged: (callback: () => void) => void
       onHistoryChanged: (callback: () => void) => void
       onPinnedChanged: (callback: () => void) => void
+      onDisabledCommandsChanged: (callback: () => void) => void
       onShowPluginPlaceholder: (callback: () => void) => void
       onShowSettings: (callback: () => void) => void
       onAppLaunched: (callback: () => void) => void

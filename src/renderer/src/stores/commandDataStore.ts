@@ -149,6 +149,38 @@ export const useCommandDataStore = defineStore('commandData', () => {
   const isInitialized = ref(false)
   // 标记是否是本地触发的更新（用于避免重复加载）
   let isLocalPinnedUpdate = false
+  // 禁用指令列表
+  const disabledCommands = ref<string[]>([])
+  const DISABLED_COMMANDS_KEY = 'disable-commands'
+
+  // 生成指令唯一标识（与设置插件保持一致）
+  // 格式: pluginName:featureCode:cmdName:cmdType
+  function getCommandId(cmd: Command): string {
+    const cmdType = cmd.cmdType || 'text'
+    return `${cmd.pluginName || ''}:${cmd.featureCode || ''}:${cmd.name}:${cmdType}`
+  }
+
+  // 检查指令是否被禁用
+  function isCommandDisabled(cmd: Command): boolean {
+    // 只检查插件指令
+    if (cmd.type !== 'plugin') {
+      return false
+    }
+    const id = getCommandId(cmd)
+    return disabledCommands.value.includes(id)
+  }
+
+  // 加载禁用指令列表
+  async function loadDisabledCommands(): Promise<void> {
+    try {
+      const data = await window.ztools.dbGet(DISABLED_COMMANDS_KEY)
+      if (data && Array.isArray(data)) {
+        disabledCommands.value = data
+      }
+    } catch (error) {
+      console.error('加载禁用指令列表失败:', error)
+    }
+  }
 
   // 从数据库加载所有数据（仅在初始化时调用一次）
   async function initializeData(): Promise<void> {
@@ -157,7 +189,8 @@ export const useCommandDataStore = defineStore('commandData', () => {
     }
 
     try {
-      // 先加载指令列表，再加载历史记录和固定列表（历史记录清理需要依赖指令列表）
+      // 先加载禁用指令列表和指令列表，再加载历史记录和固定列表（历史记录清理需要依赖指令列表）
+      await loadDisabledCommands()
       await loadCommands()
       await Promise.all([loadHistoryData(), loadPinnedData()])
 
@@ -179,6 +212,11 @@ export const useCommandDataStore = defineStore('commandData', () => {
           return
         }
         loadPinnedData()
+      })
+
+      // 监听禁用指令列表变化事件
+      window.ztools.onDisabledCommandsChanged(() => {
+        loadDisabledCommands()
       })
 
       isInitialized.value = true
@@ -664,8 +702,12 @@ export const useCommandDataStore = defineStore('commandData', () => {
     }
 
     // 应用特殊指令配置（确保图标等属性正确）
-    const processedBestMatches = bestMatches.map((cmd) => applySpecialConfig(cmd))
-    const processedRegexMatches = regexMatches.map((cmd) => applySpecialConfig(cmd))
+    const processedBestMatches = bestMatches
+      .filter((cmd) => !isCommandDisabled(cmd))
+      .map((cmd) => applySpecialConfig(cmd))
+    const processedRegexMatches = regexMatches
+      .filter((cmd) => !isCommandDisabled(cmd))
+      .map((cmd) => applySpecialConfig(cmd))
 
     // 如果指定了搜索范围（用于粘贴内容的二次搜索），不需要 regexMatches
     if (commandList) {
@@ -678,7 +720,9 @@ export const useCommandDataStore = defineStore('commandData', () => {
 
   // 搜索支持图片的指令
   function searchImageCommands(): SearchResult[] {
-    const result = regexCommands.value.filter((cmd) => cmd.matchCmd?.type === 'img')
+    const result = regexCommands.value
+      .filter((cmd) => cmd.matchCmd?.type === 'img')
+      .filter((cmd) => !isCommandDisabled(cmd))
     // 应用特殊指令配置
     return result.map((cmd) => applySpecialConfig(cmd))
   }
@@ -731,8 +775,8 @@ export const useCommandDataStore = defineStore('commandData', () => {
       return false
     })
 
-    // 应用特殊指令配置
-    return result.map((cmd) => applySpecialConfig(cmd))
+    // 应用特殊指令配置，过滤禁用指令
+    return result.filter((cmd) => !isCommandDisabled(cmd)).map((cmd) => applySpecialConfig(cmd))
   }
 
   // 搜索支持文件的指令（根据配置属性过滤）
@@ -799,8 +843,8 @@ export const useCommandDataStore = defineStore('commandData', () => {
       return allFilesMatch
     })
 
-    // 应用特殊指令配置
-    return result.map((cmd) => applySpecialConfig(cmd))
+    // 应用特殊指令配置，过滤禁用指令
+    return result.filter((cmd) => !isCommandDisabled(cmd)).map((cmd) => applySpecialConfig(cmd))
   }
 
   // 在指定的指令列表中搜索（用于粘贴内容后的二次搜索）

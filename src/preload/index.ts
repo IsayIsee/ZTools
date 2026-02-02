@@ -120,6 +120,9 @@ const api = {
   onPinnedChanged: (callback: () => void) => {
     ipcRenderer.on('pinned-changed', callback)
   },
+  onDisabledCommandsChanged: (callback: () => void) => {
+    ipcRenderer.on('disabled-commands-changed', callback)
+  },
   onUpdatePlaceholder: (callback: (placeholder: string) => void) => {
     ipcRenderer.on('update-placeholder', (_event, placeholder) => callback(placeholder))
   },

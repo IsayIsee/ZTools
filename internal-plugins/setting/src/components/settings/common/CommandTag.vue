@@ -1,5 +1,5 @@
 <template>
-  <span :class="['command-tag', tagClass]">
+  <span :class="['command-tag', tagClass, { disabled: disabled }]">
     <!-- 如果传入了 command 数据，自动渲染 -->
     <template v-if="command">
       <!-- 功能指令（文本） -->
@@ -57,6 +57,25 @@
 
     <!-- 如果没有 command，使用插槽 -->
     <slot v-else></slot>
+
+    <!-- 下拉箭头 -->
+    <svg
+      v-if="showArrow"
+      class="dropdown-arrow"
+      width="10"
+      height="10"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M4 6L8 10L12 6"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
   </span>
 </template>
 
@@ -81,6 +100,8 @@ interface Command {
 interface Props {
   command?: Command
   type?: 'text' | 'regex' | 'over'
+  disabled?: boolean
+  showArrow?: boolean
 }
 
 const props = defineProps<Props>()
@@ -217,5 +238,48 @@ const tagClass = computed(() => {
     color: #1f2937;
     border-color: #4ade80;
   }
+}
+
+/* 禁用状态样式 */
+.command-tag.disabled {
+  background: rgba(156, 163, 175, 0.15);
+  border-color: rgba(156, 163, 175, 0.35);
+  color: #9ca3af;
+  opacity: 0.7;
+}
+
+.command-tag.disabled:hover {
+  background: rgba(156, 163, 175, 0.25);
+  border-color: rgba(156, 163, 175, 0.45);
+  color: #9ca3af;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 暗色模式下的禁用状态 */
+@media (prefers-color-scheme: dark) {
+  .command-tag.disabled {
+    background: rgba(107, 114, 128, 0.15);
+    border-color: rgba(107, 114, 128, 0.3);
+    color: #6b7280;
+  }
+
+  .command-tag.disabled:hover {
+    background: rgba(107, 114, 128, 0.25);
+    border-color: rgba(107, 114, 128, 0.4);
+    color: #6b7280;
+  }
+}
+
+/* 下拉箭头样式 */
+.dropdown-arrow {
+  flex-shrink: 0;
+  margin-left: 2px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.command-tag:hover .dropdown-arrow {
+  opacity: 0.8;
 }
 </style>

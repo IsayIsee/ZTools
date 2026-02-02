@@ -453,6 +453,15 @@ export class InternalPluginAPI {
       return await (systemAPI as any).revealInFinder(path)
     })
 
+    // 通知主渲染进程禁用指令列表已更改
+    ipcMain.handle('internal:notify-disabled-commands-changed', async (event) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:notify-disabled-commands-changed')
+      }
+      this.mainWindow?.webContents.send('disabled-commands-changed')
+      return { success: true }
+    })
+
     // ==================== 图片分析 API ====================
     // 直接转发到共享的 analyze-image handler（已在 imageAnalysis.ts 中注册）
     ipcMain.handle('internal:analyze-image', async (event, imagePath: string) => {

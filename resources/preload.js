@@ -487,6 +487,10 @@ window.ztools = {
     revealInFinder: async (path) =>
       await electron.ipcRenderer.invoke('internal:reveal-in-finder', path),
 
+    // 通知主渲染进程禁用指令列表已更改
+    notifyDisabledCommandsChanged: async () =>
+      await electron.ipcRenderer.invoke('internal:notify-disabled-commands-changed'),
+
     // ==================== 图片分析 API ====================
     analyzeImage: async (imagePath) =>
       await electron.ipcRenderer.invoke('internal:analyze-image', imagePath)
