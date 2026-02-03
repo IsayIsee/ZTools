@@ -131,7 +131,7 @@
               <TagDropdown
                 v-for="(cmd, idx) in feature.textCmds"
                 :key="idx"
-                :menu-items="getMenuItems(isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, 'text'))"
+                :menu-items="getMenuItems(isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, 'text'), 'text')"
                 @select="(key) => handleMenuSelect(key, selectedSource?.name || '', feature.code, cmd.name, 'text')"
               >
                 <CommandTag
@@ -161,7 +161,7 @@
             <TagDropdown
               v-for="(cmd, idx) in feature.matchCmds"
               :key="idx"
-              :menu-items="getMenuItems(isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, cmd.type))"
+              :menu-items="getMenuItems(isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, cmd.type), cmd.type)"
               @select="(key) => handleMenuSelect(key, selectedSource?.name || '', feature.code, cmd.name, cmd.type)"
             >
               <CommandTag
@@ -298,26 +298,81 @@ async function loadDisabledCommands(): Promise<void> {
 }
 
 // 下拉菜单项
-function getMenuItems(isDisabled: boolean): MenuItem[] {
-  return [
-    {
-      key: 'toggle',
-      label: isDisabled ? '启用指令' : '禁用指令',
-      danger: !isDisabled
-    }
-  ]
+function getMenuItems(isDisabled: boolean, cmdType?: string): MenuItem[] {
+  const items: MenuItem[] = []
+
+  // 只有功能指令（text 类型）才显示"打开指令"
+  if (cmdType === 'text') {
+    items.push({
+      key: 'open',
+      label: '打开指令',
+      icon: 'play'
+    })
+  }
+
+  // 启用/禁用指令（所有类型都支持）
+  items.push({
+    key: 'toggle',
+    label: isDisabled ? '启用指令' : '禁用指令',
+    icon: isDisabled ? 'check' : 'ban',
+    danger: !isDisabled
+  })
+
+  return items
 }
 
 // 处理下拉菜单选择
-function handleMenuSelect(
+async function handleMenuSelect(
   key: string,
   pluginName: string,
   featureCode: string,
   cmdName: string,
   cmdType: string
-): void {
+): Promise<void> {
   if (key === 'toggle') {
     toggleCommandDisabled(pluginName, featureCode, cmdName, cmdType)
+  } else if (key === 'open') {
+    // 打开指令
+    await openCommand(pluginName, featureCode, cmdName, cmdType)
+  }
+}
+
+// 打开指令
+async function openCommand(
+  pluginName: string,
+  featureCode: string,
+  cmdName: string,
+  cmdType: string
+): Promise<void> {
+  try {
+    // 查找对应的指令
+    const command = commands.value.find(
+      (c) =>
+        c.path === selectedSource.value?.path &&
+        c.featureCode === featureCode &&
+        c.name === cmdName &&
+        c.cmdType === cmdType
+    )
+
+    if (!command) {
+      console.error('未找到指令:', { pluginName, featureCode, cmdName, cmdType })
+      return
+    }
+
+    console.log('打开指令:', command)
+
+    // 启动指令（使用内置插件 API）
+    await window.ztools.internal.launch({
+      path: command.path || '',
+      type: command.type,
+      featureCode: command.featureCode,
+      name: command.name,
+      param: {
+        payload: '' // 功能指令默认空 payload
+      }
+    })
+  } catch (error) {
+    console.error('打开指令失败:', error)
   }
 }
 

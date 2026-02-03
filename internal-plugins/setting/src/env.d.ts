@@ -58,7 +58,7 @@ declare global {
         revealInFinder: (filePath: string) => Promise<void>
         launch: (options: {
           path: string
-          type?: 'direct' | 'plugin'
+          type?: 'direct' | 'plugin' | 'builtin'
           featureCode?: string
           param?: any
           name?: string
