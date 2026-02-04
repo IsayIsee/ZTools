@@ -1,0 +1,24 @@
+/**
+ * Icon 组件支持的图标名称类型
+ */
+export type IconName =
+  | 'settings'
+  | 'plugin'
+  | 'back'
+  | 'keyboard'
+  | 'store'
+  | 'database'
+  | 'trash'
+  | 'list'
+  | 'close'
+  | 'search'
+  | 'regex'
+  | 'text'
+  | 'image'
+  | 'file'
+  | 'folder'
+  | 'window'
+  | 'cloud'
+  | 'check'
+  | 'play'
+  | 'ban'

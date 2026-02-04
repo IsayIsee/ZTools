@@ -444,28 +444,10 @@
 </template>
 
 <script setup lang="ts">
+import type { IconName } from './types'
+
 defineProps<{
-  name:
-    | 'settings'
-    | 'plugin'
-    | 'back'
-    | 'keyboard'
-    | 'store'
-    | 'database'
-    | 'trash'
-    | 'list'
-    | 'close'
-    | 'search'
-    | 'regex'
-    | 'text'
-    | 'image'
-    | 'file'
-    | 'folder'
-    | 'window'
-    | 'cloud'
-    | 'check'
-    | 'play'
-    | 'ban'
+  name: IconName
   size?: number | string
 }>()
 </script>

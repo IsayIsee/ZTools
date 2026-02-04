@@ -165,7 +165,7 @@ const navigationGrid = computed(() => {
     if (!hasSearchContent.value) {
       return []
     }
-    allListModeResults.value.forEach((item) => {
+    allListModeResults.value.forEach((item: any) => {
       sections.push({ type: 'listItem', items: [item] })
     })
     return sections
@@ -220,8 +220,13 @@ const navigationGrid = computed(() => {
 })
 
 // 使用导航 composable
-const { selectedRow, selectedCol, selectedItem, handleKeydown: handleNavigationKeydown, resetSelection } =
-  useNavigation(searchMode, navigationGrid)
+const {
+  selectedRow,
+  selectedCol,
+  selectedItem,
+  handleKeydown: handleNavigationKeydown,
+  resetSelection
+} = useNavigation(searchMode, navigationGrid)
 
 // 列表模式的选中索引（一维索引）
 const listModeSelectedIndex = computed(() => {

@@ -24,11 +24,12 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import Icon from '../../common/Icon.vue'
+import type { IconName } from '../../common/types'
 
 export interface MenuItem {
   key: string
   label: string
-  icon?: string
+  icon?: IconName
   danger?: boolean
 }
 
