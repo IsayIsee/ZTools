@@ -362,16 +362,20 @@ function scrollToSelectedItem(): void {
 
     if (isAbove) {
       const scrollTop = container.scrollTop + (targetRect.top - containerRect.top)
-      container.scrollTo({
-        top: Math.max(0, scrollTop),
-        behavior: 'auto'
-      })
+      setTimeout(() => {
+        container.scrollTo({
+          top: Math.max(0, scrollTop),
+          behavior: 'auto'
+        })
+      }, 50)
     } else if (isBelow) {
       const scrollTop = container.scrollTop + (targetRect.bottom - containerRect.bottom)
-      container.scrollTo({
-        top: scrollTop,
-        behavior: 'auto'
-      })
+      setTimeout(() => {
+        container.scrollTo({
+          top: scrollTop,
+          behavior: 'auto'
+        })
+      }, 50)
     }
   })
 }
