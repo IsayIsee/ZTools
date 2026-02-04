@@ -5,7 +5,7 @@
       <!-- 最近使用 -->
       <CollapsibleList
         v-if="showRecentInSearch"
-        v-model:expanded="isRecentExpanded"
+        :expanded="recentExpanded"
         title="最近使用"
         :apps="displayApps"
         :selected-index="getAbsoluteIndexForSection('apps')"
@@ -14,11 +14,12 @@
         :draggable="false"
         @select="$emit('select', $event)"
         @contextmenu="(app) => $emit('contextmenu', app, false, false)"
+        @update:expanded="$emit('update:recent-expanded', $event)"
       />
 
       <!-- 固定栏 -->
       <CollapsibleList
-        v-model:expanded="isPinnedExpanded"
+        :expanded="pinnedExpanded"
         title="已固定"
         :apps="pinnedApps"
         :selected-index="getAbsoluteIndexForSection('pinned')"
@@ -27,6 +28,7 @@
         @select="$emit('select', $event)"
         @contextmenu="(app) => $emit('contextmenu', app, false, true)"
         @update:apps="$emit('update:pinned-order', $event)"
+        @update:expanded="$emit('update:pinned-expanded', $event)"
       />
 
       <!-- 访达 -->
@@ -46,7 +48,7 @@
       <!-- 最佳搜索结果（模糊搜索） -->
       <CollapsibleList
         v-if="bestSearchResults.length > 0"
-        v-model:expanded="isSearchResultsExpanded"
+        :expanded="searchResultsExpanded"
         title="最佳搜索结果"
         :apps="bestSearchResults"
         :selected-index="getAbsoluteIndexForSection('bestSearch')"
@@ -56,12 +58,13 @@
         :search-query="searchQuery"
         @select="$emit('select', $event)"
         @contextmenu="(app) => $emit('contextmenu', app, true, false)"
+        @update:expanded="$emit('update:search-results-expanded', $event)"
       />
 
       <!-- 最佳匹配（匹配指令：regex/img/files） -->
       <CollapsibleList
         v-if="bestMatches.length > 0"
-        v-model:expanded="isBestMatchesExpanded"
+        :expanded="bestMatchesExpanded"
         title="最佳匹配"
         :apps="bestMatches"
         :selected-index="getAbsoluteIndexForSection('bestMatch')"
@@ -71,11 +74,12 @@
         :search-query="searchQuery"
         @select="$emit('select', $event)"
         @contextmenu="(app) => $emit('contextmenu', app, true, false)"
+        @update:expanded="$emit('update:best-matches-expanded', $event)"
       />
 
       <!-- 匹配推荐（over 类型） -->
       <CollapsibleList
-        v-model:expanded="isRecommendationsExpanded"
+        :expanded="recommendationsExpanded"
         title="匹配推荐"
         :apps="recommendations"
         :selected-index="getAbsoluteIndexForSection('recommendation')"
@@ -84,13 +88,14 @@
         :draggable="false"
         :search-query="searchQuery"
         @select="$emit('select-recommendation', $event)"
+        @update:expanded="$emit('update:recommendations-expanded', $event)"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import CollapsibleList from '../common/CollapsibleList.vue'
 
 interface Props {
@@ -111,34 +116,38 @@ interface Props {
   showRecentInSearch: boolean
   recentRows: number
   pinnedRows: number
+  recentExpanded?: boolean
+  pinnedExpanded?: boolean
+  searchResultsExpanded?: boolean
+  bestMatchesExpanded?: boolean
+  recommendationsExpanded?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  recentExpanded: false,
+  pinnedExpanded: false,
+  searchResultsExpanded: false,
+  bestMatchesExpanded: false,
+  recommendationsExpanded: false
+})
 
-const emit = defineEmits<{
-  (e: 'select', app: any): void
-  (e: 'select-finder', item: any): void
-  (e: 'select-recommendation', item: any): void
-  (e: 'contextmenu', app: any, fromSearch: boolean, fromPinned: boolean): void
-  (e: 'update:pinned-order', apps: any[]): void
-  (e: 'height-changed'): void
+defineEmits<{
+  select: [app: any]
+  'select-finder': [item: any]
+  'select-recommendation': [item: any]
+  contextmenu: [app: any, fromSearch: boolean, fromPinned: boolean]
+  'update:pinned-order': [apps: any[]]
+  'height-changed': []
+  'update:recent-expanded': [value: boolean]
+  'update:pinned-expanded': [value: boolean]
+  'update:search-results-expanded': [value: boolean]
+  'update:best-matches-expanded': [value: boolean]
+  'update:recommendations-expanded': [value: boolean]
 }>()
-
-// 展开状态
-const isRecentExpanded = ref(false)
-const isPinnedExpanded = ref(false)
-const isSearchResultsExpanded = ref(false)
-const isBestMatchesExpanded = ref(false)
-const isRecommendationsExpanded = ref(false)
 
 // 是否有搜索内容
 const hasSearchContent = computed(() => {
-  return !!(
-    props.searchQuery.trim() ||
-    props.pastedImage ||
-    props.pastedText ||
-    props.pastedFiles
-  )
+  return !!(props.searchQuery.trim() || props.pastedImage || props.pastedText || props.pastedFiles)
 })
 
 // 计算指定类型在列表中的绝对索引
@@ -165,42 +174,6 @@ function getAbsoluteIndexForSection(sectionType: string): number {
   // 计算相对于起始行的索引
   return (props.selectedRow - startRow) * 9 + props.selectedCol
 }
-
-// 重置所有列表的折叠状态
-function resetCollapseState(): void {
-  isRecentExpanded.value = false
-  isPinnedExpanded.value = false
-  isSearchResultsExpanded.value = false
-  isBestMatchesExpanded.value = false
-  isRecommendationsExpanded.value = false
-}
-
-// 监听搜索条件变化，重置折叠状态
-watch(
-  () => [props.searchQuery, props.pastedImage, props.pastedFiles, props.pastedText],
-  () => {
-    resetCollapseState()
-  }
-)
-
-// 监听展开状态变化，通知父组件调整窗口高度
-watch(
-  [
-    isRecentExpanded,
-    isPinnedExpanded,
-    isSearchResultsExpanded,
-    isBestMatchesExpanded,
-    isRecommendationsExpanded
-  ],
-  () => {
-    emit('height-changed')
-  }
-)
-
-// 导出方法供父组件调用
-defineExpose({
-  resetCollapseState
-})
 </script>
 
 <style scoped>

@@ -3,7 +3,11 @@
     <!-- 聚合模式 -->
     <AggregateView
       v-if="searchMode === 'aggregate'"
-      ref="aggregateViewRef"
+      v-model:recent-expanded="isRecentExpanded"
+      v-model:pinned-expanded="isPinnedExpanded"
+      v-model:search-results-expanded="isSearchResultsExpanded"
+      v-model:best-matches-expanded="isBestMatchesExpanded"
+      v-model:recommendations-expanded="isRecommendationsExpanded"
       :search-query="searchQuery"
       :pasted-image="pastedImage"
       :pasted-files="pastedFiles"
@@ -104,7 +108,6 @@ const { bestSearchResults, bestMatches, recommendations, allListModeResults } =
 
 // 内部状态
 const scrollContainerRef = ref<HTMLElement>()
-const aggregateViewRef = ref<InstanceType<typeof AggregateView>>()
 const showRecentInSearch = computed(() => windowStore.showRecentInSearch)
 
 // 是否有搜索内容
@@ -147,6 +150,13 @@ const pinnedApps = computed(() => {
   return getPinnedCommands()
 })
 
+// 折叠状态（提升到这里统一管理）
+const isRecentExpanded = ref(false)
+const isPinnedExpanded = ref(false)
+const isSearchResultsExpanded = ref(false)
+const isBestMatchesExpanded = ref(false)
+const isRecommendationsExpanded = ref(false)
+
 // 将一维数组转换为二维数组(每行9个)
 function arrayToGrid(arr: any[], cols = 9): any[][] {
   const grid: any[][] = []
@@ -154,6 +164,15 @@ function arrayToGrid(arr: any[], cols = 9): any[][] {
     grid.push(arr.slice(i, i + cols))
   }
   return grid
+}
+
+// 获取可见的项目（根据折叠状态）
+function getVisibleItems(items: any[], expanded: boolean, defaultVisibleRows: number): any[] {
+  const defaultVisibleCount = 9 * defaultVisibleRows
+  if (items.length <= defaultVisibleCount) {
+    return items
+  }
+  return expanded ? items : items.slice(0, defaultVisibleCount)
 }
 
 // 构建导航网格
@@ -175,34 +194,57 @@ const navigationGrid = computed(() => {
   if (hasSearchContent.value) {
     // 有搜索：最佳搜索结果 + 最佳匹配 + 匹配推荐
     if (bestSearchResults.value.length > 0) {
-      const searchGrid = arrayToGrid(bestSearchResults.value)
+      const visibleItems = getVisibleItems(
+        bestSearchResults.value,
+        isSearchResultsExpanded.value,
+        2
+      )
+      const searchGrid = arrayToGrid(visibleItems)
       searchGrid.forEach((row) => {
         sections.push({ type: 'bestSearch', items: row })
       })
     }
 
     if (bestMatches.value.length > 0) {
-      const matchGrid = arrayToGrid(bestMatches.value)
+      const visibleItems = getVisibleItems(bestMatches.value, isBestMatchesExpanded.value, 2)
+      const matchGrid = arrayToGrid(visibleItems)
       matchGrid.forEach((row) => {
         sections.push({ type: 'bestMatch', items: row })
       })
     }
 
     if (recommendations.value.length > 0) {
-      const recommendGrid = arrayToGrid(recommendations.value)
+      const visibleItems = getVisibleItems(
+        recommendations.value,
+        isRecommendationsExpanded.value,
+        2
+      )
+      const recommendGrid = arrayToGrid(visibleItems)
       recommendGrid.forEach((row) => {
         sections.push({ type: 'recommendation', items: row })
       })
     }
   } else {
     // 无搜索：最近使用 + 固定栏 + 访达
-    const appsGrid = arrayToGrid(displayApps.value)
-    appsGrid.forEach((row) => {
-      sections.push({ type: 'apps', items: row })
-    })
+    if (displayApps.value.length > 0) {
+      const visibleItems = getVisibleItems(
+        displayApps.value,
+        isRecentExpanded.value,
+        windowStore.recentRows
+      )
+      const appsGrid = arrayToGrid(visibleItems)
+      appsGrid.forEach((row) => {
+        sections.push({ type: 'apps', items: row })
+      })
+    }
 
     if (pinnedApps.value.length > 0) {
-      const pinnedGrid = arrayToGrid(pinnedApps.value)
+      const visibleItems = getVisibleItems(
+        pinnedApps.value,
+        isPinnedExpanded.value,
+        windowStore.pinnedRows
+      )
+      const pinnedGrid = arrayToGrid(visibleItems)
       pinnedGrid.forEach((row) => {
         sections.push({ type: 'pinned', items: row })
       })
@@ -249,7 +291,7 @@ const listModeSelectedIndex = computed(() => {
   return index
 })
 
-// 监听搜索内容变化,重置选中状态
+// 监听搜索内容变化,重置选中状态和折叠状态
 watch(
   [
     () => props.searchQuery,
@@ -259,6 +301,26 @@ watch(
   ],
   () => {
     resetSelection()
+    // 重置所有折叠状态
+    isRecentExpanded.value = false
+    isPinnedExpanded.value = false
+    isSearchResultsExpanded.value = false
+    isBestMatchesExpanded.value = false
+    isRecommendationsExpanded.value = false
+    emit('height-changed')
+  }
+)
+
+// 监听折叠状态变化，通知父组件调整窗口高度
+watch(
+  [
+    isRecentExpanded,
+    isPinnedExpanded,
+    isSearchResultsExpanded,
+    isBestMatchesExpanded,
+    isRecommendationsExpanded
+  ],
+  () => {
     emit('height-changed')
   }
 )
@@ -663,7 +725,11 @@ function handleContainerClick(event: MouseEvent): void {
 
 // 重置折叠状态
 function resetCollapseState(): void {
-  aggregateViewRef.value?.resetCollapseState()
+  isRecentExpanded.value = false
+  isPinnedExpanded.value = false
+  isSearchResultsExpanded.value = false
+  isBestMatchesExpanded.value = false
+  isRecommendationsExpanded.value = false
 }
 
 // 初始化
