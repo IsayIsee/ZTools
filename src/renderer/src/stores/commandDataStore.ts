@@ -39,8 +39,18 @@ interface FilesCmd {
   maxLength?: number // 最多文件数
 }
 
+// Window 匹配指令
+interface WindowCmd {
+  type: 'window'
+  label: string
+  match: {
+    app?: string[] // 匹配应用名称列表（如 ["Finder.app"]）
+    title?: string // 匹配窗口标题的正则表达式字符串
+  }
+}
+
 // 匹配指令联合类型
-type MatchCmd = RegexCmd | OverCmd | ImgCmd | FilesCmd
+type MatchCmd = RegexCmd | OverCmd | ImgCmd | FilesCmd | WindowCmd
 
 // 指令类型枚举
 export type CommandType =
@@ -847,6 +857,51 @@ export const useCommandDataStore = defineStore('commandData', () => {
     return result.filter((cmd) => !isCommandDisabled(cmd)).map((cmd) => applySpecialConfig(cmd))
   }
 
+  // 搜索支持窗口的指令（根据当前激活窗口进行匹配）
+  function searchWindowCommands(windowInfo?: {
+    app?: string
+    title?: string
+  }): SearchResult[] {
+    if (!windowInfo || (!windowInfo.app && !windowInfo.title)) {
+      return []
+    }
+
+    const windowCommandsList = regexCommands.value.filter((c) => c.matchCmd?.type === 'window')
+
+    const result = windowCommandsList.filter((cmd) => {
+      const windowCmd = cmd.matchCmd as WindowCmd
+
+      // 检查 app 匹配
+      if (windowCmd.match.app && windowInfo.app) {
+        const appMatches = windowCmd.match.app.some((appPattern) => {
+          // 直接字符串匹配
+          return windowInfo.app === appPattern
+        })
+        if (appMatches) {
+          return true
+        }
+      }
+
+      // 检查 title 匹配（正则表达式）
+      if (windowCmd.match.title && windowInfo.title) {
+        try {
+          const titleRegexStr = windowCmd.match.title.replace(/^\/|\/[gimuy]*$/g, '')
+          const titleRegex = new RegExp(titleRegexStr)
+          if (titleRegex.test(windowInfo.title)) {
+            return true
+          }
+        } catch (error) {
+          console.error(`窗口标题正则表达式 ${windowCmd.match.title} 解析失败:`, error)
+        }
+      }
+
+      return false
+    })
+
+    // 应用特殊指令配置，过滤禁用指令
+    return result.filter((cmd) => !isCommandDisabled(cmd)).map((cmd) => applySpecialConfig(cmd))
+  }
+
   // 在指定的指令列表中搜索（用于粘贴内容后的二次搜索）
   // 统一使用 search 函数，只是传入不同的指令列表
   function searchInCommands(commandList: SearchResult[], query: string): SearchResult[] {
@@ -1001,6 +1056,7 @@ export const useCommandDataStore = defineStore('commandData', () => {
     searchImageCommands,
     searchTextCommands,
     searchFileCommands,
+    searchWindowCommands,
     reloadUserData,
     applySpecialConfig, // 导出特殊配置应用函数
 

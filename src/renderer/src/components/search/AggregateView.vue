@@ -1,6 +1,6 @@
 <template>
   <div class="aggregate-view">
-    <!-- 无搜索时：历史记录 + 固定列表 + 访达 -->
+    <!-- 无搜索时：历史记录 + 固定列表 + 窗口匹配 -->
     <div v-if="!hasSearchContent" class="content-section">
       <!-- 最近使用 -->
       <CollapsibleList
@@ -31,15 +31,15 @@
         @update:expanded="$emit('update:pinned-expanded', $event)"
       />
 
-      <!-- 访达 -->
+      <!-- 窗口匹配栏 -->
       <CollapsibleList
-        v-if="finderActions.length > 0"
-        title="访达"
-        :apps="finderActions"
-        :selected-index="getAbsoluteIndexForSection('finder')"
+        v-if="windowMatchedActions.length > 0"
+        :title="windowMatchTitle || '窗口命令'"
+        :apps="windowMatchedActions"
+        :selected-index="getAbsoluteIndexForSection('window')"
         :empty-text="''"
         :draggable="false"
-        @select="$emit('select-finder', $event)"
+        @select="$emit('select-window', $event)"
       />
     </div>
 
@@ -108,7 +108,8 @@ interface Props {
   recommendations: any[]
   displayApps: any[]
   pinnedApps: any[]
-  finderActions: any[]
+  windowMatchedActions: any[]
+  windowMatchTitle: string
   navigationGrid: any[]
   selectedRow: number
   selectedCol: number
@@ -133,7 +134,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<{
   select: [app: any]
-  'select-finder': [item: any]
+  'select-window': [item: any]
   'select-recommendation': [item: any]
   contextmenu: [app: any, fromSearch: boolean, fromPinned: boolean]
   'update:pinned-order': [apps: any[]]

@@ -76,8 +76,22 @@ const api = {
   onContextMenuCommand: (callback: (command: string) => void) => {
     ipcRenderer.on('context-menu-command', (_event, command) => callback(command))
   },
-  onFocusSearch: (callback: () => void) => {
-    ipcRenderer.on('focus-search', callback)
+  onFocusSearch: (
+    callback: (
+      windowInfo?: {
+        app: string
+        bundleId?: string
+        pid?: number
+        title?: string
+        x?: number
+        y?: number
+        width?: number
+        height?: number
+        appPath?: string
+      } | null
+    ) => void
+  ) => {
+    ipcRenderer.on('focus-search', (_event, windowInfo) => callback(windowInfo))
   },
   onBackToSearch: (callback: () => void) => {
     ipcRenderer.on('back-to-search', callback)
@@ -95,7 +109,12 @@ const api = {
     ipcRenderer.on('plugin-closed', callback)
   },
   onWindowInfoChanged: (
-    callback: (windowInfo: { appName: string; bundleId: string; timestamp: number }) => void
+    callback: (windowInfo: {
+      app: string
+      bundleId?: string
+      pid?: number
+      timestamp: number
+    }) => void
   ) => {
     ipcRenderer.on('window-info-changed', (_event, windowInfo) => callback(windowInfo))
   },
@@ -350,14 +369,28 @@ declare global {
       updatePinnedOrder: (newOrder: any[]) => Promise<void>
       hidePlugin: () => void
       onContextMenuCommand: (callback: (command: string) => void) => void
-      onFocusSearch: (callback: () => void) => void
+      onFocusSearch: (
+        callback: (
+          windowInfo?: {
+            app: string
+            bundleId?: string
+            pid?: number
+            timestamp?: number
+          } | null
+        ) => void
+      ) => void
       onBackToSearch: (callback: () => void) => void
       onPluginOpened: (
         callback: (plugin: { name: string; logo: string; path: string }) => void
       ) => void
       onPluginClosed: (callback: () => void) => void
       onWindowInfoChanged: (
-        callback: (windowInfo: { appName: string; bundleId: string; timestamp: number }) => void
+        callback: (windowInfo: {
+          app: string
+          bundleId?: string
+          pid?: number
+          timestamp: number
+        }) => void
       ) => void
       onPluginsChanged: (callback: () => void) => void
       onAppsChanged: (callback: () => void) => void

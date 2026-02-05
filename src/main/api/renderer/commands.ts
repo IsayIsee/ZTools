@@ -1,4 +1,4 @@
-import { app, ipcMain, shell } from 'electron'
+import { app, ipcMain, shell, clipboard } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { normalizeIconPath } from '../../common/iconUtils'
@@ -8,6 +8,7 @@ import { pluginFeatureAPI } from '../plugin/feature'
 import databaseAPI from '../shared/database'
 import pluginsAPI from './plugins'
 import { systemSettingsAPI } from './systemSettings'
+import windowManager from '../../managers/windowManager'
 
 /**
  * 上次匹配状态接口
@@ -207,18 +208,21 @@ export class AppsAPI {
         // 插件启动参数中添加 featureCode
         this.launchParam.code = featureCode || ''
 
-        console.log('启动插件:', { path: appPath, featureCode, name })
+        console.log('启动插件:', { path: appPath, featureCode, name, launchParam: this.launchParam })
 
         // 更新指令使用统计（所有指令都统计，用于匹配推荐排序）
         await this.updateUsageStats({ path: appPath, type, featureCode, name })
 
-        // 判断是否为匹配指令，保存状态并添加"上次匹配"到历史记录
-        const isMatchCommand = ['img', 'over', 'files', 'regex'].includes(cmdType || '')
-        if (isMatchCommand && param) {
+        // 判断命令类型并决定是否添加历史记录
+        if (cmdType === 'window') {
+          // window 类型：不记录历史，不保存状态（仅用于窗口匹配）
+          console.log('window 类型命令，跳过历史记录')
+        } else if (['img', 'over', 'files', 'regex'].includes(cmdType || '')) {
+          // 匹配指令：保存状态并添加"上次匹配"到历史记录
           // 从param中提取完整的输入状态
-          const inputState = param.inputState || {}
+          const inputState = param?.inputState || {}
 
-          if (param.inputState) {
+          if (param?.inputState) {
             // 保存上次匹配状态（内存+数据库）
             this.lastMatchState = {
               searchQuery: inputState.searchQuery || '',
@@ -990,6 +994,81 @@ export class AppsAPI {
           return { success: true }
         }
         return { success: false, error: '缺少网址' }
+
+      case 'copy-path': {
+        // 复制访达当前文件夹路径
+        console.log('执行复制路径')
+        const previousWindow = windowManager.getPreviousActiveWindow()
+
+        if (!previousWindow) {
+          return { success: false, error: '无法获取当前窗口信息' }
+        }
+
+        if (platform === 'darwin') {
+          // macOS: 使用 AppleScript 获取 Finder 当前路径
+          try {
+            const script = `
+            tell application "Finder"
+              if (count of Finder windows) is 0 then
+                return POSIX path of (desktop as alias)
+              else
+                return POSIX path of (target of front window as alias)
+              end if
+            end tell
+          `
+            const { stdout } = await execAsync(`osascript -e '${script}'`)
+            const folderPath = stdout.trim()
+            clipboard.writeText(folderPath)
+            console.log('已复制路径:', folderPath)
+            // this.mainWindow?.webContents.send('app-launched')
+            this.mainWindow?.hide()
+            return { success: true, path: folderPath }
+          } catch (error) {
+            console.error('获取 Finder 路径失败:', error)
+            return { success: false, error: String(error) }
+          }
+        }
+        return { success: false, error: `不支持的平台: ${platform}` }
+      }
+
+      case 'open-terminal': {
+        // 在访达当前文件夹打开终端
+        console.log('执行在终端打开')
+        const previousWindow = windowManager.getPreviousActiveWindow()
+
+        if (!previousWindow) {
+          return { success: false, error: '无法获取当前窗口信息' }
+        }
+
+        if (platform === 'darwin') {
+          // macOS: 使用 AppleScript 在 Finder 当前路径打开终端
+          try {
+            const script = `
+            tell application "Finder"
+              if (count of Finder windows) is 0 then
+                set folderPath to POSIX path of (desktop as alias)
+              else
+                set folderPath to POSIX path of (target of front window as alias)
+              end if
+            end tell
+
+            tell application "Terminal"
+              activate
+              do script "cd " & quoted form of folderPath
+            end tell
+          `
+            await execAsync(`osascript -e '${script}'`)
+            console.log('已在终端打开')
+            // this.mainWindow?.webContents.send('app-launched')
+            this.mainWindow?.hide()
+            return { success: true }
+          } catch (error) {
+            console.error('在终端打开失败:', error)
+            return { success: false, error: String(error) }
+          }
+        }
+        return { success: false, error: `不支持的平台: ${platform}` }
+      }
 
       default:
         return { success: false, error: `Unknown system command: ${command}` }

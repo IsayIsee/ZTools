@@ -3,8 +3,15 @@ import { ref } from 'vue'
 import defaultAvatar from '../assets/image/default.png'
 
 interface WindowInfo {
-  appName: string
+  title?: string
+  app: string // 应用名称（如 "Finder.app"）
   bundleId: string
+  appPath?: string
+  pid?: number
+  x?: number
+  y?: number
+  width?: number
+  height?: number
   timestamp: number
 }
 
@@ -79,11 +86,6 @@ export const useWindowStore = defineStore('window', () => {
   // 更新窗口信息
   function updateWindowInfo(windowInfo: WindowInfo | null): void {
     currentWindow.value = windowInfo
-  }
-
-  // 判断当前是否为 Finder
-  function isFinder(): boolean {
-    return currentWindow.value?.bundleId === 'com.apple.finder'
   }
 
   // 更新 placeholder
@@ -514,7 +516,6 @@ export const useWindowStore = defineStore('window', () => {
     acrylicDarkOpacity,
     updateDownloadInfo,
     updateWindowInfo,
-    isFinder,
     updatePlaceholder,
     updateAvatar,
     updateCurrentPlugin,

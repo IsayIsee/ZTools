@@ -36,10 +36,15 @@ interface ClipboardItem {
 
 // 窗口激活信息
 interface WindowActivationInfo {
-  appName: string
-  bundleId: string
-  processId: number
-  timestamp: number
+  app: string
+  bundleId?: string
+  pid?: number
+  title?: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  appPath?: string
 }
 
 // 配置
@@ -91,7 +96,7 @@ class ClipboardManager {
 
     // 启动窗口激活监听
     this.windowMonitor.start((windowInfo) => {
-      console.log('窗口激活事件：', windowInfo)
+      // console.log('窗口激活事件：', windowInfo)
       this.handleWindowActivation(windowInfo)
     })
 
@@ -102,18 +107,30 @@ class ClipboardManager {
 
   // 处理窗口激活事件
   private handleWindowActivation(data: {
-    appName: string
+    app: string
     bundleId?: string
-    processId?: number
+    pid?: number
+    title?: string
+    x?: number
+    y?: number
+    width?: number
+    height?: number
+    appPath?: string
   }): void {
+    // 直接使用原生数据，保留所有字段
     this.currentWindow = {
-      appName: data.appName,
-      bundleId: data.bundleId || '',
-      processId: data.processId || 0,
-      timestamp: Date.now()
+      app: data.app,
+      bundleId: data.bundleId,
+      pid: data.pid,
+      title: data.title,
+      x: data.x,
+      y: data.y,
+      width: data.width,
+      height: data.height,
+      appPath: data.appPath
     }
 
-    // console.log(`窗口激活变化: ${data.appName} (${data.bundleId || data.processId})`)
+    // console.log(`窗口激活变化: ${data.app} (${data.bundleId || data.pid})`)
   }
 
   // 获取当前激活的窗口
@@ -124,7 +141,11 @@ class ClipboardManager {
   // 激活指定应用
   public activateApp(info: WindowActivationInfo): boolean {
     try {
-      const identifier = os.platform() === 'win32' ? info.processId : info.bundleId
+      const identifier = os.platform() === 'win32' ? info.pid : info.bundleId
+      if (!identifier) {
+        console.error('无法激活应用：缺少必要的标识符 (bundleId 或 pid)')
+        return false
+      }
       const success = WindowManager.activateWindow(identifier)
       console.log(`激活应用 ${identifier}: ${success ? '成功' : '失败'}`)
       return success
@@ -367,7 +388,7 @@ class ClipboardManager {
     try {
       // 添加当前窗口信息
       if (this.currentWindow) {
-        item.appName = this.currentWindow.appName
+        item.appName = this.currentWindow.app
         item.bundleId = this.currentWindow.bundleId
       }
 

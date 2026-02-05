@@ -358,8 +358,16 @@ onMounted(async () => {
   // 初始调整窗口高度
   updateWindowHeight()
 
-  // 监听窗口显示事件,聚焦搜索框
-  window.ztools.onFocusSearch(async () => {
+  console.log('监听聚焦事件')
+
+  // 监听窗口显示事件,聚焦搜索框，并接收窗口信息
+  window.ztools.onFocusSearch(async (windowInfo) => {
+    console.log('窗口聚焦事件:', windowInfo)
+    // 更新窗口信息
+    if (windowInfo) {
+      windowStore.updateWindowInfo(windowInfo)
+    }
+
     if (currentView.value === ViewMode.Plugin) {
       return
     }
@@ -417,14 +425,6 @@ onMounted(async () => {
 
     updateWindowHeight()
   })
-
-  // 监听窗口信息变化事件
-  window.ztools.onWindowInfoChanged(
-    (windowInfo: { appName: string; bundleId: string; timestamp: number }) => {
-      // 更新 store 中的窗口信息
-      windowStore.updateWindowInfo(windowInfo)
-    }
-  )
 
   // 监听插件按 ESC 返回搜索页面事件
   console.log('监听返回搜索页面事件')

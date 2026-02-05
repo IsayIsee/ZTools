@@ -108,7 +108,21 @@ declare global {
       updatePinnedOrder: (newOrder: any[]) => Promise<void>
       hidePlugin: () => void
       onContextMenuCommand: (callback: (command: string) => void) => void
-      onFocusSearch: (callback: () => void) => void
+      onFocusSearch: (
+        callback: (
+          windowInfo?: {
+            app: string
+            bundleId?: string
+            pid?: number
+            title?: string
+            x?: number
+            y?: number
+            width?: number
+            height?: number
+            appPath?: string
+          } | null
+        ) => void
+      ) => void
       onBackToSearch: (callback: () => void) => void
       onRedirectSearch: (callback: (data: { cmdName: string; payload?: any }) => void) => void
       onPluginOpened: (

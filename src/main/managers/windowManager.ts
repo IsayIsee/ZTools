@@ -37,10 +37,15 @@ class WindowManager {
   private currentShortcut = 'Option+Z' // 当前注册的快捷键
   private isQuitting = false // 是否正在退出应用
   private previousActiveWindow: {
-    appName: string
-    bundleId: string
-    processId: number
-    timestamp: number
+    app: string
+    bundleId?: string
+    pid?: number
+    title?: string
+    x?: number
+    y?: number
+    width?: number
+    height?: number
+    appPath?: string
   } | null = null // 打开应用前激活的窗口
   // private _shouldRestoreFocus = true // TODO: 是否在隐藏窗口时恢复焦点（待实现）
   private windowPositionsByDisplay: Record<number, { x: number; y: number }> = {}
@@ -196,22 +201,15 @@ class WindowManager {
       // 开始恢复焦点流程，防止 focus 事件监听器修改 lastFocusTarget
       this.isRestoringFocus = true
       const savedFocusTarget = this.lastFocusTarget
-      console.log('主窗口显示，上次聚焦状态:', savedFocusTarget)
 
       // 恢复上次的焦点状态
-      // 如果明确记录了上次聚焦在主窗口，则强制聚焦主窗口
-      if (savedFocusTarget === 'mainWindow') {
+      // 如果明确记录了上次聚焦在主窗口，或者是首次显示（null），则强制聚焦主窗口
+      if (savedFocusTarget === 'mainWindow' || savedFocusTarget === null) {
         this.mainWindow?.webContents.focus()
-        // 通知渲染进程聚焦搜索框
-        this.mainWindow?.webContents.send('focus-search')
+        this.mainWindow?.webContents.send('focus-search', this.previousActiveWindow || null)
       } else if (pluginManager.getCurrentPluginPath() !== null) {
         // 如果有插件在显示（且上次不是主窗口），聚焦插件
         pluginManager.focusPluginView()
-      } else {
-        // 否则聚焦主窗口
-        this.mainWindow?.webContents.focus()
-        // 通知渲染进程聚焦搜索框
-        this.mainWindow?.webContents.send('focus-search')
       }
 
       // 恢复完成，清除标志位
@@ -402,24 +400,7 @@ class WindowManager {
     } else {
       // 窗口已隐藏或失焦 → 显示并强制激活
       console.log('显示窗口')
-
-      // 开始恢复焦点流程，防止 focus 事件监听器修改 lastFocusTarget
-      this.isRestoringFocus = true
-
-      // 记录打开窗口前的激活窗口
-      const currentWindow = clipboardManager.getCurrentWindow()
-      if (currentWindow) {
-        this.previousActiveWindow = currentWindow
-
-        // 发送窗口信息到渲染进程
-        this.mainWindow.webContents.send('window-info-changed', currentWindow)
-      }
-
-      // 移动到鼠标所在显示器（恢复该显示器记忆的位置或居中）
-      this.moveWindowToCursor()
-
-      // 强制激活窗口（修复alert弹窗后无法唤起的问题）
-      this.forceActivateWindow()
+      this.showWindow()
     }
   }
 
@@ -500,10 +481,6 @@ class WindowManager {
     const currentWindow = clipboardManager.getCurrentWindow()
     if (currentWindow) {
       this.previousActiveWindow = currentWindow
-      console.log('记录打开前的激活窗口:', currentWindow.appName)
-
-      // 发送窗口信息到渲染进程
-      this.mainWindow.webContents.send('window-info-changed', currentWindow)
     }
 
     // 移动到鼠标所在显示器（恢复该显示器记忆的位置或居中）
@@ -621,10 +598,9 @@ class WindowManager {
    * 获取打开窗口前激活的窗口
    */
   public getPreviousActiveWindow(): {
-    appName: string
-    bundleId: string
-    processId: number
-    timestamp: number
+    app: string
+    bundleId?: string
+    pid?: number
   } | null {
     return this.previousActiveWindow
   }
@@ -640,19 +616,19 @@ class WindowManager {
 
     // 忽略同类启动器工具，避免激活冲突
     const ignoredApps = ['uTools', 'Alfred', 'Raycast', 'Wox', 'Listary']
-    if (ignoredApps.includes(this.previousActiveWindow.appName)) {
-      console.log(`跳过恢复同类工具: ${this.previousActiveWindow.appName}`)
+    if (ignoredApps.includes(this.previousActiveWindow.app)) {
+      console.log(`跳过恢复同类工具: ${this.previousActiveWindow.app}`)
       return false
     }
 
     try {
       const success = clipboardManager.activateApp(this.previousActiveWindow)
       if (success) {
-        console.log(`已恢复激活窗口: ${this.previousActiveWindow.appName}`)
+        console.log(`已恢复激活窗口: ${this.previousActiveWindow.app}`)
         return true
       } else {
         // 静默失败，不报错（可能进程已关闭或窗口已销毁）
-        console.log(`无法恢复窗口: ${this.previousActiveWindow.appName}`)
+        console.log(`无法恢复窗口: ${this.previousActiveWindow.app}`)
         return false
       }
     } catch (error) {
@@ -799,7 +775,7 @@ class WindowManager {
     const currentWindow = clipboardManager.getCurrentWindow()
     if (currentWindow) {
       this.previousActiveWindow = currentWindow
-      console.log('记录打开前的激活窗口:', currentWindow.appName)
+      console.log('记录打开前的激活窗口:', currentWindow.app)
 
       // 发送窗口信息到渲染进程
       this.mainWindow.webContents.send('window-info-changed', currentWindow)

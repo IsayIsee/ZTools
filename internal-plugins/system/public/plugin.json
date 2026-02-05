@@ -66,6 +66,34 @@
           "minLength": 3
         }
       ]
+    },
+    {
+      "code": "copy-path",
+      "explain": "复制路径",
+      "icon": "folder.png",
+      "cmds": [
+        {
+          "type": "window",
+          "label": "复制路径",
+          "match": {
+            "app": ["访达.app"]
+          }
+        }
+      ]
+    },
+    {
+      "code": "open-terminal",
+      "explain": "在终端打开",
+      "icon": "terminal.png",
+      "cmds": [
+        {
+          "type": "window",
+          "label": "在终端打开",
+          "match": {
+            "app": ["访达.app"]
+          }
+        }
+      ]
     }
   ]
 }

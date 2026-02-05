@@ -17,7 +17,8 @@
       :recommendations="recommendations"
       :display-apps="displayApps"
       :pinned-apps="pinnedApps"
-      :finder-actions="finderActions"
+      :window-matched-actions="windowMatchedActions"
+      :window-match-title="windowMatchTitle"
       :navigation-grid="navigationGrid"
       :selected-row="selectedRow"
       :selected-col="selectedCol"
@@ -26,7 +27,7 @@
       :recent-rows="windowStore.recentRows"
       :pinned-rows="windowStore.pinnedRows"
       @select="handleSelectApp"
-      @select-finder="handleFinderAction"
+      @select-window="handleWindowAction"
       @select-recommendation="handleRecommendationSelect"
       @contextmenu="handleAppContextMenu"
       @update:pinned-order="updatePinnedOrder"
@@ -115,25 +116,29 @@ const hasSearchContent = computed(() => {
   return !!(props.searchQuery.trim() || props.pastedImage || props.pastedText || props.pastedFiles)
 })
 
-// 访达功能列表
-const finderActions = computed(() => {
-  if (!windowStore.isFinder()) {
+// 窗口匹配的操作列表（基于 feature 动态匹配）
+const windowMatchedActions = computed(() => {
+  const currentWindow = windowStore.currentWindow
+  if (!currentWindow) {
     return []
   }
-  return [
-    {
-      name: '复制路径',
-      path: 'finder-action:copy-path',
-      icon: '📋',
-      type: 'builtin' as const
-    },
-    {
-      name: '在终端打开',
-      path: 'finder-action:open-terminal',
-      icon: '⌨️',
-      type: 'builtin' as const
-    }
-  ]
+
+  // 使用 commandDataStore 的 searchWindowCommands 进行匹配
+  return commandDataStore.searchWindowCommands({
+    app: currentWindow.app,
+    title: currentWindow.title
+  })
+})
+
+// 窗口匹配栏的标题（基于当前窗口的 app 名称）
+const windowMatchTitle = computed(() => {
+  const currentWindow = windowStore.currentWindow
+  if (!currentWindow) {
+    return ''
+  }
+  // 提取 app 名称（去掉 .app 后缀）
+  const appName = currentWindow.app || ''
+  return appName.replace(/\.app$/i, '')
 })
 
 // 显示的应用列表
@@ -250,10 +255,10 @@ const navigationGrid = computed(() => {
       })
     }
 
-    if (finderActions.value.length > 0) {
-      const finderGrid = arrayToGrid(finderActions.value)
-      finderGrid.forEach((row) => {
-        sections.push({ type: 'finder', items: row })
+    if (windowMatchedActions.value.length > 0) {
+      const windowGrid = arrayToGrid(windowMatchedActions.value)
+      windowGrid.forEach((row) => {
+        sections.push({ type: 'window', items: row })
       })
     }
   }
@@ -519,6 +524,8 @@ async function handleSelectApp(app: any): Promise<void> {
         name: file.name,
         path: file.path
       })) as MatchFile[]
+    } else if (app.cmdType === 'window') {
+      payload = JSON.parse(JSON.stringify(windowStore.currentWindow))
     }
 
     // 启动应用或插件
@@ -562,24 +569,13 @@ async function handleSelectApp(app: any): Promise<void> {
   }
 }
 
-// 访达功能选择
-async function handleFinderAction(item: any): Promise<void> {
+// 窗口功能选择
+async function handleWindowAction(item: any): Promise<void> {
   try {
-    const path = await window.ztools.getFinderPath()
-    if (!path) {
-      console.error('无法获取 Finder 路径')
-      return
-    }
-
-    if (item.path === 'finder-action:copy-path') {
-      await window.ztools.copyToClipboard(path)
-      window.ztools.hideWindow()
-    } else if (item.path === 'finder-action:open-terminal') {
-      await window.ztools.openTerminal(path)
-      window.ztools.hideWindow()
-    }
+    // 执行命令，将 window feature 的命令作为普通插件命令执行
+    await handleSelectApp(item)
   } catch (error) {
-    console.error('执行 Finder 操作失败:', error)
+    console.error('执行窗口操作失败:', error)
   }
 }
 
@@ -601,8 +597,8 @@ async function handleKeydown(event: KeyboardEvent): Promise<void> {
     const item = selectedItem.value
     if (item) {
       const currentRow = grid[selectedRow.value]
-      if (currentRow.type === 'finder') {
-        handleFinderAction(item)
+      if (currentRow.type === 'window') {
+        handleWindowAction(item)
       } else if (currentRow.type === 'recommendation') {
         handleRecommendationSelect(item)
       } else {

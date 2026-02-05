@@ -25,15 +25,21 @@ interface NativeAddon {
 }
 
 interface WindowInfo {
-  appName: string
-  bundleId?: string
-  processId?: number
+  app: string // 应用名称（如 "Finder.app"）
+  bundleId?: string // macOS 独有
+  pid?: number // 进程ID (macOS 和 Windows 都有)
+  title?: string // 窗口标题
+  x?: number // 窗口 x 坐标
+  y?: number // 窗口 y 坐标
+  width?: number // 窗口宽度
+  height?: number // 窗口高度
+  appPath?: string // 应用路径
 }
 
 interface ActiveWindowResult {
-  appName: string
+  app: string
   bundleId?: string
-  processId?: number
+  pid?: number
   error?: string
 }
 
@@ -152,8 +158,8 @@ export class WindowMonitor {
   /**
    * 启动窗口监控
    * @param callback - 窗口切换时的回调函数
-   * - macOS: { appName: string, bundleId: string }
-   * - Windows: { appName: string, processId: number }
+   * - macOS: { app, bundleId, title, x, y, width, height, appPath, pid }
+   * - Windows: { app, pid, title, x, y, width, height, appPath }
    */
   start(callback: (windowInfo: WindowInfo) => void): void {
     if (this._isMonitoring) {
@@ -201,10 +207,10 @@ export class WindowManager {
   /**
    * 获取当前激活的窗口信息
    * @returns 窗口信息对象
-   * - macOS: { appName, bundleId }
-   * - Windows: { appName, processId }
+   * - macOS: { app, bundleId, pid }
+   * - Windows: { app, pid }
    */
-  static getActiveWindow(): { appName: string; bundleId?: string; processId?: number } | null {
+  static getActiveWindow(): { app: string; bundleId?: string; pid?: number } | null {
     const result = (addon as NativeAddon).getActiveWindow()
     if (!result || result.error) {
       return null
