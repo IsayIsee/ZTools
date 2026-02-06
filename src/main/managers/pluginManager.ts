@@ -330,7 +330,7 @@ class PluginManager {
       // 加载插件页面
       view.webContents.loadURL(pluginUrl)
       // 插件加载完成
-      view.webContents.on('did-finish-load', async () => {
+      view.webContents.on('dom-ready', async () => {
         // 注入全局滚动条样式（如果插件没有自定义）
         view.webContents.insertCSS(GLOBAL_SCROLLBAR_CSS)
 
