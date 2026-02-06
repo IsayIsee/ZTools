@@ -7,6 +7,7 @@ import systemAPI from '../renderer/system.js'
 import windowAPI from '../renderer/window.js'
 import databaseAPI from '../shared/database'
 import updaterAPI from '../updater.js'
+import aiModelsAPI from '../renderer/aiModels.js'
 
 /**
  * 权限错误类
@@ -191,6 +192,43 @@ export class InternalPluginAPI {
         throw new PermissionDeniedError('internal:clear-plugin-data')
       }
       return await databaseAPI.clearPluginData(pluginName)
+    })
+
+    // ==================== AI 模型管理 API ====================
+    ipcMain.handle('internal:ai-models-get-all', async (event) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:ai-models-get-all')
+      }
+      try {
+        const models = await (aiModelsAPI as any).getAllModels()
+        return { success: true, data: models }
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : '未知错误'
+        }
+      }
+    })
+
+    ipcMain.handle('internal:ai-models-add', async (event, model: any) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:ai-models-add')
+      }
+      return await (aiModelsAPI as any).addModel(model)
+    })
+
+    ipcMain.handle('internal:ai-models-update', async (event, model: any) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:ai-models-update')
+      }
+      return await (aiModelsAPI as any).updateModel(model)
+    })
+
+    ipcMain.handle('internal:ai-models-delete', async (event, modelId: string) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:ai-models-delete')
+      }
+      return await (aiModelsAPI as any).deleteModel(modelId)
     })
 
     // ==================== 全局快捷键 API ====================

@@ -7,6 +7,7 @@ import databaseAPI from './shared/database'
 import updaterAPI from './updater'
 
 // 主程序渲染进程专用API
+import aiModelsAPI from './renderer/aiModels'
 import appsAPI from './renderer/commands'
 import localShortcutsAPI from './renderer/localShortcuts'
 import pluginsAPI from './renderer/plugins'
@@ -18,6 +19,7 @@ import windowAPI from './renderer/window'
 
 // 插件专用API
 import windowManager from '../managers/windowManager'
+import pluginAiAPI from './plugin/ai'
 import pluginClipboardAPI from './plugin/clipboard'
 import pluginDeviceAPI from './plugin/device'
 import pluginDialogAPI from './plugin/dialog'
@@ -53,6 +55,7 @@ class APIManager {
     setupImageAnalysisAPI()
 
     // 初始化主程序API
+    aiModelsAPI.init()
     appsAPI.init(mainWindow, pluginManager)
     pluginsAPI.init(mainWindow, pluginManager)
     windowAPI.init(mainWindow)
@@ -63,6 +66,7 @@ class APIManager {
     localShortcutsAPI.init(mainWindow)
 
     // 初始化插件API
+    pluginAiAPI.init(pluginManager)
     pluginLifecycleAPI.init(mainWindow, pluginManager)
     pluginUIAPI.init(mainWindow, pluginManager)
     pluginClipboardAPI.init()

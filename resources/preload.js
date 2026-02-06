@@ -334,6 +334,77 @@ window.ztools = {
     clearHeaders: () => electron.ipcRenderer.sendSync('http-clear-headers')
   },
 
+  // AI 调用 API
+  ai: (option, streamCallback) => {
+    const requestId = Math.random().toString(36).substr(2, 9)
+
+    // 创建 PromiseLike 对象
+    const promiseLike = {
+      abort: () => {
+        electron.ipcRenderer.invoke('plugin:ai-abort', requestId)
+      }
+    }
+
+    if (streamCallback && typeof streamCallback === 'function') {
+      // 流式调用
+      const streamListener = (event, chunk) => {
+        streamCallback(chunk)
+      }
+
+      // 监听流式数据
+      electron.ipcRenderer.on(`plugin:ai-stream-${requestId}`, streamListener)
+
+      // 创建 Promise
+      const promise = electron.ipcRenderer.invoke('plugin:ai-call-stream', requestId, option)
+        .then((result) => {
+          // 移除监听器
+          electron.ipcRenderer.removeListener(`plugin:ai-stream-${requestId}`, streamListener)
+          if (!result.success) {
+            throw new Error(result.error || 'AI 调用失败')
+          }
+        })
+        .catch((error) => {
+          // 移除监听器
+          electron.ipcRenderer.removeListener(`plugin:ai-stream-${requestId}`, streamListener)
+          throw error
+        })
+
+      // 合并 Promise 和 abort 方法
+      Object.setPrototypeOf(promiseLike, promise)
+      promiseLike.then = promise.then.bind(promise)
+      promiseLike.catch = promise.catch.bind(promise)
+      promiseLike.finally = promise.finally.bind(promise)
+
+      return promiseLike
+    } else {
+      // 非流式调用
+      const promise = electron.ipcRenderer.invoke('plugin:ai-call', requestId, option)
+        .then((result) => {
+          if (!result.success) {
+            throw new Error(result.error || 'AI 调用失败')
+          }
+          return result.data
+        })
+
+      // 合并 Promise 和 abort 方法
+      Object.setPrototypeOf(promiseLike, promise)
+      promiseLike.then = promise.then.bind(promise)
+      promiseLike.catch = promise.catch.bind(promise)
+      promiseLike.finally = promise.finally.bind(promise)
+
+      return promiseLike
+    }
+  },
+
+  // 获取所有可用 AI 模型
+  allAiModels: async () => {
+    const result = await electron.ipcRenderer.invoke('plugin:ai-all-models')
+    if (!result.success) {
+      throw new Error(result.error || '获取 AI 模型列表失败')
+    }
+    return result.data || []
+  },
+
   // 内置插件专用 API（仅限内置插件调用）
   internal: {
     // ==================== 数据库 API (ZTOOLS/ 命名空间) ====================
@@ -496,7 +567,15 @@ window.ztools = {
 
     // ==================== 图片分析 API ====================
     analyzeImage: async (imagePath) =>
-      await electron.ipcRenderer.invoke('internal:analyze-image', imagePath)
+      await electron.ipcRenderer.invoke('internal:analyze-image', imagePath),
+
+    // ==================== AI 模型管理 API ====================
+    aiModels: {
+      getAll: async () => await electron.ipcRenderer.invoke('internal:ai-models-get-all'),
+      add: async (model) => await electron.ipcRenderer.invoke('internal:ai-models-add', model),
+      update: async (model) => await electron.ipcRenderer.invoke('internal:ai-models-update', model),
+      delete: async (modelId) => await electron.ipcRenderer.invoke('internal:ai-models-delete', modelId)
+    }
   }
 }
 

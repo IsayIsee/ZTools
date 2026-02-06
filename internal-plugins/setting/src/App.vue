@@ -21,6 +21,7 @@ onMounted(() => {
       shortcuts: 'shortcuts',
       plugins: 'plugins',
       'plugin-market': 'market',
+      'ai-models': 'ai-models',
       data: 'data',
       'all-commands': 'all-commands',
       sync: 'sync'

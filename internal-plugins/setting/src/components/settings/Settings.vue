@@ -39,6 +39,9 @@
 
       <!-- 本地启动 -->
       <LocalLaunch v-if="activeMenu === 'local-launch'" />
+
+      <!-- AI 模型管理 -->
+      <AiModels v-if="activeMenu === 'ai-models'" />
     </div>
   </div>
 </template>
@@ -46,6 +49,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Icon from '../common/Icon.vue'
+import AiModels from './AiModels.vue'
 import AllCommands from './AllCommands.vue'
 import DataManagement from './DataManagement.vue'
 import GeneralSettings from './GeneralSettings.vue'
@@ -70,7 +74,7 @@ const emit = defineEmits<{
 // 菜单项类型
 interface MenuItem {
   id: string
-  icon: 'settings' | 'plugin' | 'keyboard' | 'store' | 'database' | 'list' | 'cloud' | 'folder'
+  icon: 'settings' | 'plugin' | 'keyboard' | 'store' | 'database' | 'list' | 'cloud' | 'folder' | 'brain'
   label: string
 }
 
@@ -80,6 +84,7 @@ const menuItems: MenuItem[] = [
   { id: 'shortcuts', icon: 'keyboard', label: '全局快捷键' },
   { id: 'plugins', icon: 'plugin', label: '已安装插件' },
   { id: 'market', icon: 'store', label: '插件市场' },
+  { id: 'ai-models', icon: 'brain', label: 'AI 模型' },
   { id: 'data', icon: 'database', label: '我的数据' },
   { id: 'all-commands', icon: 'list', label: '所有指令' },
   { id: 'local-launch', icon: 'folder', label: '本地启动' },

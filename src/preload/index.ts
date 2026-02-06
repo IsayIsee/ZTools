@@ -272,7 +272,14 @@ const api = {
   // 文件系统检查（异步，通过主进程）
   checkFilePaths: (paths: string[]) => ipcRenderer.invoke('check-file-paths', paths),
   // 获取拖放文件的路径（Electron webUtils）
-  getPathForFile: (file: File) => webUtils.getPathForFile(file)
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
+  // AI 模型管理
+  aiModels: {
+    getAll: () => ipcRenderer.invoke('ai-models:get-all'),
+    add: (model: any) => ipcRenderer.invoke('ai-models:add', model),
+    update: (model: any) => ipcRenderer.invoke('ai-models:update', model),
+    delete: (modelId: string) => ipcRenderer.invoke('ai-models:delete', modelId)
+  }
 }
 
 contextBridge.exposeInMainWorld('ztools', api)
@@ -484,6 +491,13 @@ declare global {
           useCount: number
         }>
       >
+      // AI 模型管理
+      aiModels: {
+        getAll: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+        add: (model: any) => Promise<{ success: boolean; error?: string }>
+        update: (model: any) => Promise<{ success: boolean; error?: string }>
+        delete: (modelId: string) => Promise<{ success: boolean; error?: string }>
+      }
     }
   }
 }
