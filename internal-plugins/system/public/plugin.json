@@ -77,7 +77,7 @@
           "type": "window",
           "label": "复制路径",
           "match": {
-            "app": ["访达.app"]
+            "app": ["Finder.app"]
           }
         }
       ]
@@ -91,7 +91,7 @@
           "type": "window",
           "label": "在终端打开",
           "match": {
-            "app": ["访达.app"]
+            "app": ["Finder.app"]
           }
         }
       ]
