@@ -134,7 +134,10 @@
                 :menu-items="
                   getMenuItems(
                     isCommandDisabled(selectedSource?.name || '', feature.code, cmd.name, 'text'),
-                    'text'
+                    'text',
+                    selectedSource?.name || '',
+                    feature.code,
+                    cmd.name
                   )
                 "
                 @select="
@@ -260,6 +263,10 @@ const activeTab = ref<'text' | 'match'>('text')
 const disabledCommands = ref<string[]>([])
 const DISABLED_COMMANDS_KEY = 'disable-commands'
 
+// 超级面板固定列表
+const superPanelPinned = ref<any[]>([])
+const SUPER_PANEL_PINNED_KEY = 'super-panel-pinned'
+
 // 生成指令唯一标识
 // 格式: pluginName:featureCode:cmdName:cmdType
 function getCommandId(
@@ -329,8 +336,82 @@ async function loadDisabledCommands(): Promise<void> {
   }
 }
 
+// 加载超级面板固定列表
+async function loadSuperPanelPinned(): Promise<void> {
+  try {
+    const data = await window.ztools.internal.dbGet(SUPER_PANEL_PINNED_KEY)
+    if (data && Array.isArray(data)) {
+      superPanelPinned.value = data
+    }
+  } catch (error) {
+    console.error('加载超级面板固定列表失败:', error)
+  }
+}
+
+// 检查指令是否已固定到超级面板
+function isPinnedToSuperPanel(pluginName: string, featureCode: string, cmdName: string): boolean {
+  return superPanelPinned.value.some(
+    (item) =>
+      item.name === cmdName && item.featureCode === featureCode && item.pluginName === pluginName
+  )
+}
+
+// 固定/取消固定到超级面板
+async function toggleSuperPanelPin(
+  pluginName: string,
+  featureCode: string,
+  cmdName: string
+): Promise<void> {
+  const isPinned = isPinnedToSuperPanel(pluginName, featureCode, cmdName)
+
+  if (isPinned) {
+    // 取消固定
+    superPanelPinned.value = superPanelPinned.value.filter(
+      (item) =>
+        !(
+          item.name === cmdName &&
+          item.featureCode === featureCode &&
+          item.pluginName === pluginName
+        )
+    )
+  } else {
+    // 查找对应的指令信息
+    const command = commands.value.find(
+      (c) =>
+        c.path === selectedSource.value?.path && c.featureCode === featureCode && c.name === cmdName
+    )
+
+    if (command) {
+      superPanelPinned.value.push({
+        name: command.name,
+        path: command.path || '',
+        icon: command.icon || '',
+        type: command.type,
+        featureCode: command.featureCode || '',
+        pluginName: pluginName,
+        pluginExplain: command.pluginExplain || '',
+        cmdType: command.cmdType || 'text'
+      })
+    }
+  }
+
+  // 保存到数据库
+  try {
+    const plainArray = JSON.parse(JSON.stringify(superPanelPinned.value))
+    await window.ztools.internal.dbPut(SUPER_PANEL_PINNED_KEY, plainArray)
+  } catch (error) {
+    console.error('保存超级面板固定列表失败:', error)
+  }
+}
+
 // 下拉菜单项
-function getMenuItems(isDisabled: boolean, cmdType?: string): MenuItem[] {
+function getMenuItems(
+  isDisabled: boolean,
+  cmdType?: string,
+  pluginName?: string,
+  featureCode?: string,
+  cmdName?: string
+): MenuItem[] {
   const items: MenuItem[] = []
 
   // 只有功能指令（text 类型）才显示"打开指令"
@@ -340,6 +421,16 @@ function getMenuItems(isDisabled: boolean, cmdType?: string): MenuItem[] {
       label: '打开指令',
       icon: 'play'
     })
+
+    // 功能指令支持固定到超级面板
+    if (pluginName && featureCode && cmdName) {
+      const pinned = isPinnedToSuperPanel(pluginName, featureCode, cmdName)
+      items.push({
+        key: 'pin-super-panel',
+        label: pinned ? '取消固定超级面板' : '固定到超级面板',
+        icon: 'pin'
+      })
+    }
   }
 
   // 启用/禁用指令（所有类型都支持）
@@ -366,6 +457,9 @@ async function handleMenuSelect(
   } else if (key === 'open') {
     // 打开指令
     await openCommand(pluginName, featureCode, cmdName, cmdType)
+  } else if (key === 'pin-super-panel') {
+    // 固定/取消固定到超级面板
+    await toggleSuperPanelPin(pluginName, featureCode, cmdName)
   }
 }
 
@@ -592,6 +686,8 @@ function selectSource(source: Source): void {
 onMounted(async () => {
   // 加载禁用指令列表
   await loadDisabledCommands()
+  // 加载超级面板固定列表
+  await loadSuperPanelPinned()
   // 加载指令数据
   await loadCommands()
   // 加载插件列表（包括内置插件）

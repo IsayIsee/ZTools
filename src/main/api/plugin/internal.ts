@@ -358,6 +358,11 @@ export class InternalPluginAPI {
       }
       // 广播到主渲染进程
       this.mainWindow?.webContents.send('update-avatar', avatar)
+
+      // 广播到超级面板窗口
+      const { default: superPanelManager } = await import('../../core/superPanelManager.js')
+      superPanelManager.broadcastToSuperPanel('update-avatar', avatar)
+
       return { success: true }
     })
 
@@ -514,6 +519,20 @@ export class InternalPluginAPI {
       this.mainWindow?.webContents.send('disabled-commands-changed')
       return { success: true }
     })
+
+    // ==================== 超级面板 API ====================
+    ipcMain.handle(
+      'internal:update-super-panel-config',
+      async (event, config: { enabled: boolean; mouseButton: string; longPressMs: number }) => {
+        if (!requireInternalPlugin(this.pluginManager, event)) {
+          throw new PermissionDeniedError('internal:update-super-panel-config')
+        }
+        // 转发给 superPanelManager（延迟导入避免循环依赖）
+        const { default: superPanelManager } = await import('../../core/superPanelManager.js')
+        superPanelManager.updateConfig(config)
+        return { success: true }
+      }
+    )
 
     // ==================== 图片分析 API ====================
     // 直接转发到共享的 analyze-image handler（已在 imageAnalysis.ts 中注册）

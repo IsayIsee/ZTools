@@ -1,5 +1,9 @@
 <template>
-  <div class="app-container">
+  <!-- 超级面板模式 -->
+  <SuperPanel v-if="isSuperPanel" />
+
+  <!-- 主窗口模式 -->
+  <div v-else class="app-container">
     <div class="search-window">
       <div :class="['search-box-wrapper', { 'with-divider': currentView === ViewMode.Plugin }]">
         <SearchBox
@@ -40,8 +44,12 @@
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import SearchBox from './components/search/SearchBox.vue'
 import SearchResults from './components/search/SearchResults.vue'
+import SuperPanel from './components/SuperPanel.vue'
 import { useCommandDataStore } from './stores/commandDataStore'
 import { useWindowStore } from './stores/windowStore'
+
+// 检测是否是超级面板模式（通过 hash 路由区分）
+const isSuperPanel = window.location.hash === '#/super-panel'
 
 // FileItem 接口（从剪贴板管理器返回的格式）
 interface FileItem {
@@ -673,6 +681,122 @@ onMounted(async () => {
 
   // 检查是否有已下载的更新
   windowStore.checkDownloadedUpdate()
+
+  // 监听超级面板搜索请求（主进程转发，携带剪贴板内容）
+  window.ztools.onSuperPanelSearch((data: { text: string; clipboardContent?: any }) => {
+    console.log(
+      '[超级面板搜索] 收到搜索请求:',
+      data.text?.substring(0, 50),
+      'clipboardType:',
+      data.clipboardContent?.type
+    )
+    const searchText = data.text || ''
+    const cc = data.clipboardContent
+
+    const seen = new Set<string>()
+    const results: any[] = []
+    const addResults = (items: any[]): void => {
+      for (const item of items) {
+        const key = `${item.path}:${item.featureCode || ''}`
+        if (!seen.has(key)) {
+          seen.add(key)
+          results.push(item)
+        }
+      }
+    }
+
+    if (cc?.type === 'image') {
+      // 图片：搜索支持 img 类型的指令
+      addResults(commandDataStore.searchImageCommands())
+    } else if (cc?.type === 'file' && cc.files) {
+      // 文件：搜索支持 files 类型的指令
+      addResults(commandDataStore.searchFileCommands(cc.files))
+    } else if (cc?.type === 'text' && cc.text) {
+      // 文本：搜索 text 和 regex/over 类型的指令
+      const { bestMatches, regexMatches } = commandDataStore.search(cc.text)
+      addResults(bestMatches)
+      addResults(regexMatches)
+    } else if (searchText) {
+      // 普通文本搜索
+      const { bestMatches, regexMatches } = commandDataStore.search(searchText)
+      addResults(bestMatches)
+      addResults(regexMatches)
+    }
+
+    console.log('[超级面板搜索] 返回结果数:', results.length)
+    // 发送搜索结果回超级面板（携带剪贴板内容）
+    window.ztools.sendSuperPanelSearchResult({
+      results: JSON.parse(JSON.stringify(results)),
+      clipboardContent: cc
+    })
+  })
+
+  // 监听超级面板启动事件（由主进程从超级面板转发）
+  window.ztools.onSuperPanelLaunch(async (data: { command: any; clipboardContent?: any }) => {
+    console.log(
+      '[超级面板启动] 收到启动事件:',
+      data.command?.name,
+      'clipboardType:',
+      data.clipboardContent?.type
+    )
+    const cmd = data.command
+    const cc = data.clipboardContent
+
+    // 构造 payload（复用 SearchResults 中 handleSelectApp 的逻辑）
+    let payload: any = ''
+    let type = cmd.cmdType || 'text'
+
+    if (cc) {
+      if (cc.type === 'text' && cc.text) {
+        if (cmd.cmdType === 'over' || cmd.cmdType === 'regex') {
+          payload = cc.text
+        } else {
+          payload = cc.text
+        }
+      } else if (cc.type === 'image' && cc.image) {
+        payload = cc.image
+        type = 'img'
+      } else if (cc.type === 'file' && cc.files) {
+        payload = cc.files.map((file: any) => ({
+          isFile: !file.isDirectory,
+          isDirectory: file.isDirectory,
+          name: file.name,
+          path: file.path
+        }))
+        type = 'files'
+      }
+    }
+
+    try {
+      await window.ztools.launch({
+        path: cmd.path,
+        type: cmd.type || 'plugin',
+        featureCode: cmd.featureCode,
+        name: cmd.name,
+        cmdType: cmd.cmdType || type,
+        param: {
+          payload,
+          type,
+          inputState: {
+            searchQuery: cc?.type === 'text' ? cc.text || '' : '',
+            pastedImage: cc?.type === 'image' ? cc.image : null,
+            pastedFiles:
+              cc?.type === 'file'
+                ? cc.files.map((file: any) => ({
+                    isFile: !file.isDirectory,
+                    isDirectory: file.isDirectory,
+                    name: file.name,
+                    path: file.path
+                  }))
+                : null,
+            pastedText: cc?.type === 'text' ? cc.text : null
+          }
+        }
+      })
+    } catch (error) {
+      console.error('[超级面板启动] 启动失败:', error)
+    }
+  })
 
   // 全局键盘事件监听
   window.addEventListener('keydown', handleKeydown)

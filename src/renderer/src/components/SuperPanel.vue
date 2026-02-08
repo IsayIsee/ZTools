@@ -1,0 +1,596 @@
+<template>
+  <div class="super-panel" @keydown="handleKeydown">
+    <!-- 宫格模式：无剪贴板数据，显示固定指令 -->
+    <template v-if="mode === 'pinned'">
+      <!-- 头部：头像 + 超级面板标题 -->
+      <div class="search-header pinned-header">
+        <img v-if="avatar" :src="avatar" class="header-avatar" draggable="false" />
+        <div v-else class="header-avatar-placeholder">Z</div>
+        <span class="header-text">超级面板</span>
+      </div>
+
+      <div class="pinned-grid">
+        <div
+          v-for="(cmd, index) in pinnedCommands"
+          :key="`${cmd.path}-${cmd.featureCode || ''}`"
+          class="grid-item"
+          :class="{ selected: index === selectedIndex }"
+          @click="launch(cmd)"
+          @mouseenter="selectedIndex = index"
+        >
+          <img
+            v-if="cmd.icon && !iconErrors.has(getItemKey(cmd))"
+            :src="cmd.icon"
+            class="grid-icon"
+            draggable="false"
+            @error="iconErrors.add(getItemKey(cmd))"
+          />
+          <div v-else class="grid-icon-placeholder">
+            {{ cmd.name.charAt(0).toUpperCase() }}
+          </div>
+          <span class="grid-name">{{ cmd.name }}</span>
+        </div>
+        <!-- 空状态 -->
+        <div v-if="pinnedCommands.length === 0" class="empty-state">
+          <span class="empty-text">暂无固定项目</span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 列表模式：有搜索结果 -->
+    <template v-else-if="mode === 'search'">
+      <!-- 头部：剪贴板内容描述 -->
+      <div class="search-header">
+        <div class="header-menu-btn" title="返回固定列表" @click="showPinned">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="3.5" cy="3.5" r="1.5" fill="currentColor" />
+            <circle cx="9" cy="3.5" r="1.5" fill="currentColor" />
+            <circle cx="14.5" cy="3.5" r="1.5" fill="currentColor" />
+            <circle cx="3.5" cy="9" r="1.5" fill="currentColor" />
+            <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+            <circle cx="14.5" cy="9" r="1.5" fill="currentColor" />
+            <circle cx="3.5" cy="14.5" r="1.5" fill="currentColor" />
+            <circle cx="9" cy="14.5" r="1.5" fill="currentColor" />
+            <circle cx="14.5" cy="14.5" r="1.5" fill="currentColor" />
+          </svg>
+        </div>
+        <span class="header-text">{{ clipboardDescription }}</span>
+      </div>
+
+      <!-- 搜索结果列表 -->
+      <div class="search-list">
+        <div
+          v-for="(result, index) in searchResults"
+          :key="`${result.path}-${result.featureCode || ''}`"
+          class="list-item"
+          :class="{ selected: index === selectedIndex }"
+          @click="launch(result)"
+          @mouseenter="selectedIndex = index"
+        >
+          <img
+            v-if="result.icon && !iconErrors.has(getItemKey(result))"
+            :src="result.icon"
+            class="list-icon"
+            draggable="false"
+            @error="iconErrors.add(getItemKey(result))"
+          />
+          <div v-else class="list-icon-placeholder">
+            {{ result.name.charAt(0).toUpperCase() }}
+          </div>
+          <div class="list-info">
+            <span class="list-name">{{ result.name }}</span>
+            <span v-if="result.pluginExplain" class="list-desc">{{ result.pluginExplain }}</span>
+          </div>
+        </div>
+        <!-- 空状态 -->
+        <div v-if="searchResults.length === 0" class="empty-state">
+          <span class="empty-text">无匹配结果</span>
+        </div>
+      </div>
+    </template>
+
+    <!-- 加载中 -->
+    <div v-else class="loading-state">
+      <span class="loading-text">加载中...</span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import defaultAvatar from '../assets/image/default.png'
+
+interface CommandItem {
+  name: string
+  path: string
+  icon?: string
+  type?: string
+  subType?: string
+  featureCode?: string
+  pluginName?: string
+  pluginExplain?: string
+  cmdType?: string
+  param?: any
+}
+
+interface ClipboardContent {
+  type: 'text' | 'image' | 'file'
+  text?: string
+  image?: string
+  files?: Array<{ path: string; name: string; isDirectory: boolean }>
+}
+
+const mode = ref<'pinned' | 'search' | 'loading'>('loading')
+const pinnedCommands = ref<CommandItem[]>([])
+const searchResults = ref<CommandItem[]>([])
+const selectedIndex = ref(0)
+const iconErrors = ref<Set<string>>(new Set())
+// 保存当前的剪贴板内容（由搜索结果携带）
+const currentClipboardContent = ref<ClipboardContent | null>(null)
+// 头像（默认使用内置头像）
+const avatar = ref(defaultAvatar)
+
+// 剪贴板内容描述
+const clipboardDescription = computed(() => {
+  const content = currentClipboardContent.value
+  if (!content) return ''
+
+  if (content.type === 'text' && content.text) {
+    return `选中的文本 ${content.text.length} 个`
+  } else if (content.type === 'image') {
+    return '选中的图片'
+  } else if (content.type === 'file' && content.files) {
+    return `选中的文件 ${content.files.length} 个`
+  }
+  return ''
+})
+
+// 返回固定列表
+function showPinned(): void {
+  window.ztools.superPanelShowPinned()
+}
+
+function getItemKey(item: CommandItem): string {
+  return `${item.path}-${item.featureCode || ''}-${item.name}`
+}
+
+// 获取当前显示的列表
+function getCurrentList(): CommandItem[] {
+  return mode.value === 'pinned' ? pinnedCommands.value : searchResults.value
+}
+
+// 启动指令（携带剪贴板内容）
+async function launch(cmd: CommandItem): Promise<void> {
+  try {
+    console.log('启动指令:', cmd, '剪贴板内容:', currentClipboardContent.value?.type)
+    // 将命令和剪贴板内容一起发送给主进程，由主进程转发给主渲染进程处理
+    const launchData = JSON.parse(
+      JSON.stringify({
+        ...cmd,
+        clipboardContent: currentClipboardContent.value
+      })
+    )
+    await window.ztools.superPanelLaunch(launchData)
+  } catch (error) {
+    console.error('超级面板启动失败:', error)
+  }
+}
+
+// 键盘导航
+function handleKeydown(event: KeyboardEvent): void {
+  const list = getCurrentList()
+  if (list.length === 0) return
+
+  if (mode.value === 'pinned') {
+    // 宫格模式：3 列布局，支持上下左右
+    const cols = 3
+    switch (event.key) {
+      case 'ArrowUp':
+        event.preventDefault()
+        if (selectedIndex.value >= cols) {
+          selectedIndex.value -= cols
+        }
+        break
+      case 'ArrowDown':
+        event.preventDefault()
+        if (selectedIndex.value + cols < list.length) {
+          selectedIndex.value += cols
+        }
+        break
+      case 'ArrowLeft':
+        event.preventDefault()
+        if (selectedIndex.value > 0) {
+          selectedIndex.value--
+        }
+        break
+      case 'ArrowRight':
+        event.preventDefault()
+        if (selectedIndex.value < list.length - 1) {
+          selectedIndex.value++
+        }
+        break
+      case 'Enter':
+        event.preventDefault()
+        if (list[selectedIndex.value]) {
+          launch(list[selectedIndex.value])
+        }
+        break
+      case 'Escape':
+        event.preventDefault()
+        window.close()
+        break
+    }
+  } else {
+    // 列表模式：上下导航
+    switch (event.key) {
+      case 'ArrowUp':
+        event.preventDefault()
+        if (selectedIndex.value > 0) {
+          selectedIndex.value--
+        }
+        break
+      case 'ArrowDown':
+        event.preventDefault()
+        if (selectedIndex.value < list.length - 1) {
+          selectedIndex.value++
+        }
+        break
+      case 'Enter':
+        event.preventDefault()
+        if (list[selectedIndex.value]) {
+          launch(list[selectedIndex.value])
+        }
+        break
+      case 'Escape':
+        event.preventDefault()
+        window.close()
+        break
+    }
+  }
+
+  // 确保选中项可见
+  scrollToSelected()
+}
+
+// 滚动到选中项
+function scrollToSelected(): void {
+  const container = document.querySelector('.search-list') || document.querySelector('.pinned-grid')
+  if (!container) return
+
+  const selectedEl = container.querySelector('.selected') as HTMLElement
+  if (selectedEl) {
+    selectedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }
+}
+
+// 滚动到顶部
+function scrollToTop(): void {
+  nextTick(() => {
+    const container =
+      document.querySelector('.search-list') || document.querySelector('.pinned-grid')
+    if (container) {
+      container.scrollTop = 0
+    }
+  })
+}
+
+onMounted(() => {
+  // 监听超级面板数据（从主进程发送）
+  window.ztools.onSuperPanelData((data) => {
+    console.log(
+      '[SuperPanel] 收到数据, type:',
+      data.type,
+      'count:',
+      data.commands?.length || data.results?.length || 0
+    )
+    if (data.type === 'pinned') {
+      mode.value = 'pinned'
+      pinnedCommands.value = data.commands || []
+      selectedIndex.value = 0
+      currentClipboardContent.value = null
+      scrollToTop()
+    } else if (data.type === 'search') {
+      mode.value = 'search'
+      searchResults.value = data.results || []
+      selectedIndex.value = 0
+      // 保存搜索结果携带的剪贴板内容
+      currentClipboardContent.value = data.clipboardContent || null
+      scrollToTop()
+    }
+  })
+
+  // 通知主进程窗口已准备好
+  window.ztools.superPanelReady()
+
+  // 加载头像
+  window.ztools
+    .dbGet('settings-general')
+    .then((settings) => {
+      if (settings?.avatar) {
+        avatar.value = settings.avatar
+      }
+    })
+    .catch(() => {
+      // ignore
+    })
+
+  // 监听头像更新事件
+  window.ztools.onUpdateAvatar((newAvatar: string) => {
+    console.log('[SuperPanel] 收到头像更新:', newAvatar)
+    avatar.value = newAvatar || defaultAvatar
+  })
+
+  // 聚焦以接收键盘事件
+  const panel = document.querySelector('.super-panel') as HTMLElement
+  if (panel) {
+    panel.setAttribute('tabindex', '0')
+    panel.focus()
+  }
+})
+
+// 键盘焦点保持
+function handleFocusOut(): void {
+  const panel = document.querySelector('.super-panel') as HTMLElement
+  if (panel) {
+    panel.focus()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('focusout', handleFocusOut)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('focusout', handleFocusOut)
+})
+</script>
+
+<style scoped>
+.super-panel {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color);
+  border-radius: 10px;
+  overflow: hidden;
+  outline: none;
+  user-select: none;
+}
+
+/* ========== 头部 ========== */
+.search-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--divider-color);
+  flex-shrink: 0;
+}
+
+.header-menu-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.header-menu-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-color);
+}
+
+.header-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.header-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-on-primary);
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.header-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========== 宫格模式 ========== */
+.pinned-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-content: start;
+  gap: 2px;
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.pinned-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  overflow: hidden;
+  min-height: 80px;
+  height: fit-content;
+}
+
+.grid-item:hover,
+.grid-item.selected {
+  background: var(--hover-bg);
+}
+
+.grid-item.selected {
+  background: var(--active-bg);
+}
+
+.grid-icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.grid-icon-placeholder {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-on-primary);
+  font-size: 16px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.grid-name {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
+  color: var(--text-color);
+  text-align: center;
+  width: 100%;
+  padding: 0 2px;
+  min-height: 28px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-all;
+  flex-shrink: 0;
+}
+
+/* ========== 列表模式 ========== */
+.search-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.search-list::-webkit-scrollbar {
+  display: none;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  flex-shrink: 0;
+}
+
+.list-item:hover,
+.list-item.selected {
+  background: var(--hover-bg);
+}
+
+.list-item.selected {
+  background: var(--active-bg);
+}
+
+.list-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.list-icon-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-on-primary);
+  font-size: 13px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.list-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.list-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========== 空状态和加载状态 ========== */
+.empty-state,
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 100px;
+  grid-column: 1 / -1;
+}
+
+.empty-text,
+.loading-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+</style>

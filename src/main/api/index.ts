@@ -35,6 +35,8 @@ import pluginUIAPI from './plugin/ui'
 import pluginWindowAPI from './plugin/window'
 import { setupImageAnalysisAPI } from './shared/imageAnalysis'
 
+import superPanelManager from '../core/superPanelManager'
+
 /**
  * API管理器 - 统一初始化和管理所有API模块
  */
@@ -85,6 +87,9 @@ class APIManager {
 
     // 初始化软件更新API
     updaterAPI.init(mainWindow)
+
+    // 初始化超级面板管理器
+    superPanelManager.init(mainWindow)
 
     // 设置一些特殊的IPC处理器
     this.setupSpecialHandlers()

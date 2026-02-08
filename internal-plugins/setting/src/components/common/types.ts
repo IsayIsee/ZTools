@@ -23,3 +23,4 @@ export type IconName =
   | 'play'
   | 'ban'
   | 'brain'
+  | 'pin'

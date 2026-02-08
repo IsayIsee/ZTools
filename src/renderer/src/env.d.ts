@@ -304,6 +304,25 @@ declare global {
       ) => Promise<Array<{ path: string; isDirectory: boolean; exists: boolean }>>
       // 获取拖放文件的路径（Electron webUtils）
       getPathForFile: (file: File) => string
+      // 超级面板相关
+      onSuperPanelSearch: (
+        callback: (data: { text: string; clipboardContent?: any }) => void
+      ) => void
+      sendSuperPanelSearchResult: (data: { results: any[]; clipboardContent?: any }) => void
+      onSuperPanelData: (
+        callback: (data: {
+          type: string
+          commands?: any[]
+          results?: any[]
+          clipboardContent?: any
+        }) => void
+      ) => void
+      superPanelLaunch: (command: any) => Promise<{ success: boolean; error?: string }>
+      superPanelReady: () => void
+      superPanelShowPinned: () => void
+      onSuperPanelLaunch: (
+        callback: (data: { command: any; clipboardContent?: any }) => void
+      ) => void
     }
   }
 }

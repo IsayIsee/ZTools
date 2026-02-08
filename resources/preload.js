@@ -569,6 +569,10 @@ window.ztools = {
     analyzeImage: async (imagePath) =>
       await electron.ipcRenderer.invoke('internal:analyze-image', imagePath),
 
+    // ==================== 超级面板 API ====================
+    updateSuperPanelConfig: async (config) =>
+      await electron.ipcRenderer.invoke('internal:update-super-panel-config', config),
+
     // ==================== AI 模型管理 API ====================
     aiModels: {
       getAll: async () => await electron.ipcRenderer.invoke('internal:ai-models-get-all'),

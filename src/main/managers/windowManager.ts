@@ -20,6 +20,7 @@ import clipboardManager from './clipboardManager'
 
 import { WINDOW_INITIAL_HEIGHT, WINDOW_DEFAULT_HEIGHT, WINDOW_WIDTH } from '../common/constants'
 import detachedWindowManager from '../core/detachedWindowManager'
+import superPanelManager from '../core/superPanelManager'
 import { applyWindowMaterial, getDefaultWindowMaterial } from '../utils/windowUtils'
 import pluginManager from './pluginManager'
 
@@ -697,6 +698,9 @@ class WindowManager {
 
     // 发送给所有分离窗口
     detachedWindowManager.updateAllWindowsMaterial(material)
+
+    // 发送给超级面板窗口
+    superPanelManager.updateWindowMaterial(material)
   }
 
   /**

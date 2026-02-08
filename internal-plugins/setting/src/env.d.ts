@@ -269,6 +269,13 @@ declare global {
           delete: (id: string) => Promise<{ success: boolean; error?: string }>
         }
 
+        // 超级面板
+        updateSuperPanelConfig: (config: {
+          enabled: boolean
+          mouseButton: string
+          longPressMs: number
+        }) => Promise<{ success: boolean }>
+
         // 通知主渲染进程禁用指令列表已更改
         notifyDisabledCommandsChanged: () => Promise<{ success: boolean }>
       }

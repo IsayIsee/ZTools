@@ -264,10 +264,14 @@ export class AppsAPI {
           if (pluginConfig.name === 'system') {
             console.log('检测到 system 插件，执行系统命令:', featureCode)
             // system 插件：执行系统命令
-            return await executeSystemCommand(featureCode || '', {
-              mainWindow: this.mainWindow,
-              pluginManager: this.pluginManager
-            }, param)
+            return await executeSystemCommand(
+              featureCode || '',
+              {
+                mainWindow: this.mainWindow,
+                pluginManager: this.pluginManager
+              },
+              param
+            )
           }
         } catch (error) {
           console.error('检查 system 插件失败:', error)
@@ -917,7 +921,6 @@ export class AppsAPI {
       return { commands: [], regexCommands: [] }
     }
   }
-
 }
 
 export default new AppsAPI()

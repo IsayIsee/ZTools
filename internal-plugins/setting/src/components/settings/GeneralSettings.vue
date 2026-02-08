@@ -332,6 +332,59 @@
       </div>
     </div>
 
+    <!-- 超级面板设置 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <span>启用超级面板</span>
+        <span class="setting-desc">长按鼠标按键弹出超级面板，快速访问应用和插件</span>
+      </div>
+      <div class="setting-control">
+        <label class="toggle">
+          <input
+            v-model="superPanelEnabled"
+            type="checkbox"
+            @change="handleSuperPanelEnabledChange"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 超级面板鼠标按键 -->
+    <div v-if="superPanelEnabled" class="setting-item sub-setting">
+      <div class="setting-label">
+        <span>鼠标按键弹出</span>
+        <span class="setting-desc">选择触发超级面板的鼠标按键</span>
+      </div>
+      <div class="setting-control">
+        <Dropdown
+          v-model="superPanelMouseButton"
+          :options="superPanelMouseButtonOptions"
+          @change="handleSuperPanelMouseButtonChange"
+        />
+      </div>
+    </div>
+
+    <!-- 超级面板长按响应时间 -->
+    <div v-if="superPanelEnabled" class="setting-item sub-setting">
+      <div class="setting-label">
+        <span>长按响应时间</span>
+        <span class="setting-desc">长按鼠标按键多少毫秒后弹出超级面板</span>
+      </div>
+      <div class="setting-control">
+        <input
+          v-model.number="superPanelLongPressMs"
+          type="number"
+          class="input"
+          placeholder="500"
+          min="200"
+          max="3000"
+          @blur="handleSuperPanelLongPressMsChange"
+          @keyup.enter="handleSuperPanelLongPressMsChange"
+        />
+      </div>
+    </div>
+
     <!-- 自动粘贴设置 -->
     <div class="setting-item">
       <div class="setting-label">
@@ -457,6 +510,7 @@ import {
   type AutoBackToSearchOption,
   type AutoClearOption,
   type AutoPasteOption,
+  type MouseButtonType,
   type PrimaryColor,
   type ThemeType
 } from '../../constants'
@@ -526,6 +580,13 @@ const searchModeOptions = [
   { label: '列表模式', value: 'list' }
 ]
 
+const superPanelMouseButtonOptions = [
+  { label: '鼠标中键', value: 'middle' },
+  { label: '鼠标右键', value: 'right' },
+  { label: '鼠标后退键', value: 'back' },
+  { label: '鼠标前进键', value: 'forward' }
+]
+
 // 当前平台（与 window.ztools.getPlatform 返回类型保持一致）
 const platform = ref<'darwin' | 'win32' | 'linux'>('darwin')
 
@@ -546,6 +607,11 @@ const showRecentInSearch = ref(true)
 const recentRows = ref(2)
 const pinnedRows = ref(2)
 const searchMode = ref<'aggregate' | 'list'>('aggregate')
+
+// 超级面板设置
+const superPanelEnabled = ref(false)
+const superPanelMouseButton = ref<MouseButtonType>('middle')
+const superPanelLongPressMs = ref(500)
 
 // 实际快捷键字符串
 const hotkey = ref('')
@@ -826,6 +892,61 @@ async function handleSearchModeChange(): Promise<void> {
     console.log('搜索框模式已更新:', searchMode.value)
   } catch (error) {
     console.error('保存搜索框模式配置失败:', error)
+  }
+}
+
+// 处理超级面板开关变化
+async function handleSuperPanelEnabledChange(): Promise<void> {
+  try {
+    await saveSettings()
+    await window.ztools.internal.updateSuperPanelConfig({
+      enabled: superPanelEnabled.value,
+      mouseButton: superPanelMouseButton.value,
+      longPressMs: superPanelLongPressMs.value
+    })
+    console.log('超级面板开关已更新:', superPanelEnabled.value)
+  } catch (err) {
+    console.error('更新超级面板开关失败:', err)
+  }
+}
+
+// 处理超级面板鼠标按键变化
+async function handleSuperPanelMouseButtonChange(): Promise<void> {
+  try {
+    // right 按键必须 longPressMs > 0
+    if (superPanelMouseButton.value === 'right' && superPanelLongPressMs.value < 200) {
+      superPanelLongPressMs.value = 500
+    }
+    await saveSettings()
+    await window.ztools.internal.updateSuperPanelConfig({
+      enabled: superPanelEnabled.value,
+      mouseButton: superPanelMouseButton.value,
+      longPressMs: superPanelLongPressMs.value
+    })
+    console.log('超级面板鼠标按键已更新:', superPanelMouseButton.value)
+  } catch (err) {
+    console.error('更新超级面板鼠标按键失败:', err)
+  }
+}
+
+// 处理超级面板长按响应时间变化
+async function handleSuperPanelLongPressMsChange(): Promise<void> {
+  try {
+    if (!superPanelLongPressMs.value || superPanelLongPressMs.value < 200) {
+      superPanelLongPressMs.value = 200
+    }
+    if (superPanelLongPressMs.value > 3000) {
+      superPanelLongPressMs.value = 3000
+    }
+    await saveSettings()
+    await window.ztools.internal.updateSuperPanelConfig({
+      enabled: superPanelEnabled.value,
+      mouseButton: superPanelMouseButton.value,
+      longPressMs: superPanelLongPressMs.value
+    })
+    console.log('超级面板长按响应时间已更新:', superPanelLongPressMs.value)
+  } catch (err) {
+    console.error('更新超级面板长按响应时间失败:', err)
   }
 }
 
@@ -1234,6 +1355,10 @@ async function loadSettings(): Promise<void> {
       theme.value = data.theme ?? 'system'
       primaryColor.value = data.primaryColor ?? 'blue'
       searchMode.value = data.searchMode ?? 'aggregate'
+      // 超级面板配置
+      superPanelEnabled.value = data.superPanelEnabled ?? false
+      superPanelMouseButton.value = data.superPanelMouseButton ?? 'middle'
+      superPanelLongPressMs.value = data.superPanelLongPressMs ?? 500
       // 窗口材质由主进程启动时保证一定有值，无需兜底
       windowMaterial.value = data.windowMaterial
       acrylicLightOpacity.value = data.acrylicLightOpacity ?? 78
@@ -1290,6 +1415,9 @@ async function saveSettings(): Promise<void> {
       recentRows: recentRows.value,
       pinnedRows: pinnedRows.value,
       searchMode: searchMode.value,
+      superPanelEnabled: superPanelEnabled.value,
+      superPanelMouseButton: superPanelMouseButton.value,
+      superPanelLongPressMs: superPanelLongPressMs.value,
       theme: theme.value,
       primaryColor: primaryColor.value,
       customColor: customColor.value,

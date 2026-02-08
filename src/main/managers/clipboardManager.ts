@@ -190,7 +190,7 @@ class ClipboardManager {
       }
 
       if (item) {
-        console.log('新剪贴板内容:', item)
+        // console.log('新剪贴板内容:', item)
         await this.saveItem(item as ClipboardItem)
         // 通知插件剪贴板变化
         pluginManager?.sendPluginMessage('clipboard-change', item)

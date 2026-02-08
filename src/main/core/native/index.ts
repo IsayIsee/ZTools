@@ -22,6 +22,12 @@ interface NativeAddon {
   ) => void
   getClipboardFiles: () => ClipboardFile[]
   setClipboardFiles: (files: Array<string | { path: string }>) => boolean
+  startMouseMonitor: (
+    buttonType: MouseButtonType,
+    longPressMs: number,
+    callback: () => void
+  ) => void
+  stopMouseMonitor: () => void
 }
 
 interface WindowInfo {
@@ -48,6 +54,9 @@ interface ClipboardFile {
   name: string
   isDirectory: boolean
 }
+
+// 鼠标按钮类型
+type MouseButtonType = 'middle' | 'right' | 'back' | 'forward'
 
 /**
  * 剪贴板监控类
@@ -283,6 +292,75 @@ export class WindowManager {
 }
 
 /**
+ * 鼠标监控类
+ */
+export class MouseMonitor {
+  private static _callback: (() => void) | null = null
+  private static _isMonitoring = false
+
+  /**
+   * 启动鼠标监控
+   * @param buttonType - 按钮类型：'middle' | 'right' | 'back' | 'forward'
+   * @param longPressMs - 长按阈值（毫秒）
+   *   - 0: 监听点击（mouseUp 时触发）
+   *   - >0: 监听长按（按住达到该时长后触发）
+   *   - 注意：'right' 只支持长按（longPressMs 必须 > 0）
+   * @param callback - 鼠标事件回调函数
+   * - 参数: 无
+   */
+  static start(buttonType: MouseButtonType, longPressMs: number, callback: () => void): void {
+    if (MouseMonitor._isMonitoring) {
+      throw new Error('Mouse monitor is already running')
+    }
+
+    const validButtons: MouseButtonType[] = ['middle', 'right', 'back', 'forward']
+    if (!validButtons.includes(buttonType)) {
+      throw new TypeError(`buttonType must be one of: ${validButtons.join(', ')}`)
+    }
+
+    if (typeof longPressMs !== 'number' || longPressMs < 0) {
+      throw new TypeError('longPressMs must be a non-negative number')
+    }
+
+    if (buttonType === 'right' && longPressMs === 0) {
+      throw new TypeError("'right' button only supports long press (longPressMs must be > 0)")
+    }
+
+    if (typeof callback !== 'function') {
+      throw new TypeError('Callback must be a function')
+    }
+
+    MouseMonitor._callback = callback
+    MouseMonitor._isMonitoring = true
+    ;(addon as NativeAddon).startMouseMonitor(buttonType, longPressMs, () => {
+      if (MouseMonitor._callback) {
+        MouseMonitor._callback()
+      }
+    })
+  }
+
+  /**
+   * 停止鼠标监控
+   */
+  static stop(): void {
+    if (!MouseMonitor._isMonitoring) {
+      return
+    }
+
+    ;(addon as NativeAddon).stopMouseMonitor()
+    MouseMonitor._isMonitoring = false
+    MouseMonitor._callback = null
+  }
+
+  /**
+   * 是否正在监控
+   */
+  static get isMonitoring(): boolean {
+    return MouseMonitor._isMonitoring
+  }
+}
+
+/**
  * 区域截图类
  */
 export class ScreenCapture {
@@ -316,4 +394,4 @@ export class ScreenCapture {
 export default ClipboardMonitor
 
 // 导出类型
-export type { ClipboardFile, WindowInfo, ActiveWindowResult }
+export type { ClipboardFile, WindowInfo, ActiveWindowResult, MouseButtonType }

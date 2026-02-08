@@ -443,6 +443,24 @@
       stroke-linejoin="round"
     />
 
+    <!-- 图钉图标 - Pin -->
+    <path
+      v-if="name === 'pin'"
+      d="M12 17V21"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      v-if="name === 'pin'"
+      d="M15.6 3.6L20.4 8.4C20.8 8.8 20.8 9.4 20.5 9.8L16.5 14.5C16.2 14.9 15.6 15 15.1 14.8L14 14.2L10 18H7L8.5 14.5L7.2 13.2C6.8 12.9 6.7 12.3 7 11.8L10.2 8.9C10.4 8.7 10.7 8.6 11 8.6L14.2 3.5C14.6 3.1 15.2 3.2 15.6 3.6Z"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
     <!-- AI 模型图标 - Brain -->
     <path
       v-if="name === 'brain'"

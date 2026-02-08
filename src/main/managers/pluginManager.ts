@@ -58,7 +58,11 @@ class PluginManager {
   }
 
   // 创建或更新插件视图
-  public async createPluginView(pluginPath: string, featureCode: string, cmdName?: string): Promise<void> {
+  public async createPluginView(
+    pluginPath: string,
+    featureCode: string,
+    cmdName?: string
+  ): Promise<void> {
     if (!this.mainWindow) return
 
     console.log('准备加载插件:', { pluginPath, featureCode })

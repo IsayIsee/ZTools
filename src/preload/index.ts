@@ -282,6 +282,29 @@ const api = {
     add: (model: any) => ipcRenderer.invoke('ai-models:add', model),
     update: (model: any) => ipcRenderer.invoke('ai-models:update', model),
     delete: (modelId: string) => ipcRenderer.invoke('ai-models:delete', modelId)
+  },
+  // 超级面板相关
+  onSuperPanelSearch: (callback: (data: { text: string; clipboardContent?: any }) => void) => {
+    ipcRenderer.on('super-panel-search', (_event, data) => callback(data))
+  },
+  sendSuperPanelSearchResult: (data: { results: any[]; clipboardContent?: any }) => {
+    ipcRenderer.send('super-panel-search-result', data)
+  },
+  onSuperPanelData: (
+    callback: (data: {
+      type: string
+      commands?: any[]
+      results?: any[]
+      clipboardContent?: any
+    }) => void
+  ) => {
+    ipcRenderer.on('super-panel-data', (_event, data) => callback(data))
+  },
+  superPanelLaunch: (command: any) => ipcRenderer.invoke('super-panel:launch', command),
+  superPanelReady: () => ipcRenderer.send('super-panel:ready'),
+  superPanelShowPinned: () => ipcRenderer.send('super-panel:show-pinned'),
+  onSuperPanelLaunch: (callback: (data: { command: any; clipboardContent?: any }) => void) => {
+    ipcRenderer.on('super-panel-launch', (_event, data) => callback(data))
   }
 }
 
