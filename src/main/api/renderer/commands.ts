@@ -305,7 +305,7 @@ export class AppsAPI {
               console.error('在独立窗口中创建插件失败:', result.error)
               // 如果创建失败，降级到主窗口模式
               this.mainWindow?.webContents.send('show-plugin-placeholder')
-              await this.pluginManager.createPluginView(appPath, featureCode || '')
+              await this.pluginManager.createPluginView(appPath, featureCode || '', name)
             } else {
               // 创建成功，隐藏主窗口
               this.mainWindow?.hide()
@@ -315,7 +315,7 @@ export class AppsAPI {
             this.mainWindow?.webContents.send('show-plugin-placeholder')
 
             // 在主窗口中创建插件
-            await this.pluginManager.createPluginView(appPath, featureCode || '')
+            await this.pluginManager.createPluginView(appPath, featureCode || '', name)
           }
         }
 

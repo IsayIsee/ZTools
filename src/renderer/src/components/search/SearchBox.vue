@@ -9,6 +9,44 @@
     <div v-if="isDraggingOver" class="drag-overlay"></div>
     <!-- 隐藏的测量元素,用于计算文本宽度 -->
     <div class="search-input-container">
+      <!-- 插件模式胶囊标签 -->
+      <div
+        v-if="currentView === 'plugin' && windowStore.currentPlugin"
+        class="plugin-tag"
+        :class="{ 'has-cmd': windowStore.currentPlugin.cmdName }"
+      >
+        <div class="plugin-tag-left">
+          <AdaptiveIcon
+            v-if="windowStore.currentPlugin.logo"
+            :src="windowStore.currentPlugin.logo"
+            class="plugin-tag-icon"
+            :force-adaptive="false"
+            draggable="false"
+          />
+          <span class="plugin-tag-title">
+            {{ windowStore.currentPlugin.title || windowStore.currentPlugin.name }}
+          </span>
+        </div>
+        <span v-if="windowStore.currentPlugin.cmdName" class="plugin-tag-cmd">
+          {{ windowStore.currentPlugin.cmdName }}
+        </span>
+        <button title="返回搜索" class="plugin-tag-close" @click.stop="handleClosePlugin">
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </div>
       <!-- 粘贴的图片缩略图 -->
       <div v-if="pastedImage" class="pasted-image-thumbnail">
         <img :src="pastedImage" alt="粘贴的图片" />
@@ -206,6 +244,7 @@ const emit = defineEmits<{
   ): void
   (e: 'composing', isComposing: boolean): void
   (e: 'settings-click'): void
+  (e: 'close-plugin'): void
 }>()
 
 const windowStore = useWindowStore()
@@ -823,6 +862,11 @@ onMounted(() => {
   })
 })
 
+// 关闭插件，返回搜索页
+function handleClosePlugin(): void {
+  emit('close-plugin')
+}
+
 // 处理双击事件 - 在插件显示状态下分离插件
 async function handleDoubleClick(): Promise<void> {
   // 只在插件模式下响应双击事件
@@ -1047,6 +1091,135 @@ defineExpose({
   min-width: 0; /* 允许 flex 子元素缩小 */
   overflow: hidden; /* 防止内容溢出 */
   /* 不设置 no-drag，继承父元素的 drag，整个区域可拖动 */
+}
+
+/* 插件模式胶囊标签 */
+.plugin-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  max-width: 280px;
+  overflow: hidden;
+  -webkit-app-region: no-drag;
+  user-select: none;
+  transition: all 0.2s;
+  cursor: default;
+  padding-right: 4px;
+}
+
+.plugin-tag:hover {
+  background: rgba(0, 0, 0, 0.09);
+}
+
+/* 有 cmd 时：右侧区域使用更淡的背景 */
+.plugin-tag.has-cmd {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.plugin-tag.has-cmd:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* 左侧区域：icon + 标题 */
+.plugin-tag-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+}
+
+/* 有 cmd 时，左侧使用更深的背景 + 斜切右边缘 */
+.plugin-tag.has-cmd .plugin-tag-left {
+  background: rgba(0, 0, 0, 0.07);
+  padding-right: 20px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+.plugin-tag-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.plugin-tag-title {
+  font-size: 16px;
+  color: var(--text-color);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.plugin-tag-cmd {
+  font-size: 14px;
+  color: var(--text-color);
+  font-weight: 600;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+  line-height: 1;
+  flex-shrink: 1;
+  min-width: 0;
+  opacity: 0.6;
+}
+
+.plugin-tag-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  color: var(--text-color);
+  opacity: 0.35;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all 0.15s;
+}
+
+.plugin-tag-close:hover {
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.plugin-tag-close:active {
+  transform: scale(0.9);
+}
+
+/* 暗色模式 */
+@media (prefers-color-scheme: dark) {
+  .plugin-tag {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .plugin-tag:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .plugin-tag.has-cmd {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .plugin-tag.has-cmd:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .plugin-tag.has-cmd .plugin-tag-left {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .plugin-tag-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
 }
 
 .input-wrapper {

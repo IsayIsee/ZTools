@@ -58,7 +58,7 @@ class PluginManager {
   }
 
   // 创建或更新插件视图
-  public async createPluginView(pluginPath: string, featureCode: string): Promise<void> {
+  public async createPluginView(pluginPath: string, featureCode: string, cmdName?: string): Promise<void> {
     if (!this.mainWindow) return
 
     console.log('准备加载插件:', { pluginPath, featureCode })
@@ -109,10 +109,12 @@ class PluginManager {
         // 通知渲染进程插件已打开
         this.mainWindow?.webContents.send('plugin-opened', {
           name: pluginConfig.name,
+          title: pluginConfig.title || pluginConfig.name,
           logo: pluginConfig.logo
             ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href
             : '',
           path: pluginPath,
+          cmdName: cmdName || '',
           subInputPlaceholder: cached.subInputPlaceholder || '搜索',
           subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : false // 默认隐藏
         })
@@ -320,8 +322,10 @@ class PluginManager {
       // 提前通知渲染进程插件已打开
       this.mainWindow?.webContents.send('plugin-opened', {
         name: pluginConfig.name,
+        title: pluginConfig.title || pluginConfig.name,
         logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
         path: pluginPath,
+        cmdName: cmdName || '',
         subInputPlaceholder: pluginInfo.subInputPlaceholder,
         subInputVisible: pluginInfo.subInputVisible
       })

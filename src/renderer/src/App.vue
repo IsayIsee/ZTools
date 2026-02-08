@@ -11,6 +11,7 @@
           :current-view="currentView"
           @composing="handleComposing"
           @arrow-keydown="handleArrowKeydown"
+          @close-plugin="handleClosePlugin"
         />
       </div>
 
@@ -142,6 +143,16 @@ function handleRestoreMatch(state: any): void {
 // 处理输入法组合状态
 function handleComposing(composing: boolean): void {
   isComposing.value = composing
+}
+
+// 关闭插件，返回搜索页（胶囊标签关闭按钮）
+function handleClosePlugin(): void {
+  currentView.value = ViewMode.Search
+  searchQuery.value = ''
+  window.ztools.hidePlugin()
+  nextTick(() => {
+    searchBoxRef.value?.focus()
+  })
 }
 
 // 将浏览器 KeyboardEvent 转换为 Electron KeyboardInputEvent 格式
