@@ -222,16 +222,18 @@ async function scanDirectory(dirPath: string, apps: Command[]): Promise<void> {
 
       // 如果目标路径存在且文件存在，使用目标路径；否则使用 .lnk 文件本身
       let appPath = fullPath
-      let iconPath = fullPath // 图标提取路径，默认为快捷方式
+      // 图标优先级：快捷方式自定义图标 > 目标文件 > 快捷方式本身
+      // 解决同路径不同名应用（如米哈游各游戏）显示相同图标的问题
+      let iconPath = shortcutDetails?.icon || fullPath
 
       if (targetPath) {
         const fs = await import('fs')
         if (fs.existsSync(targetPath)) {
           appPath = targetPath
-          iconPath = targetPath // 目标存在时，从目标提取图标
-        } else {
-          // 目标不存在时，尝试从快捷方式的图标路径提取
-          iconPath = shortcutDetails?.icon || fullPath
+          // 仅当快捷方式没有自定义图标时，才使用目标文件的图标
+          if (!shortcutDetails?.icon) {
+            iconPath = targetPath
+          }
         }
       }
 
