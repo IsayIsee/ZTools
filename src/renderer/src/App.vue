@@ -1,9 +1,5 @@
 <template>
-  <!-- 超级面板模式 -->
-  <SuperPanel v-if="isSuperPanel" />
-
-  <!-- 主窗口模式 -->
-  <div v-else class="app-container">
+  <div class="app-container">
     <div class="search-window">
       <div :class="['search-box-wrapper', { 'with-divider': currentView === ViewMode.Plugin }]">
         <SearchBox
@@ -44,12 +40,8 @@
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import SearchBox from './components/search/SearchBox.vue'
 import SearchResults from './components/search/SearchResults.vue'
-import SuperPanel from './components/SuperPanel.vue'
 import { useCommandDataStore } from './stores/commandDataStore'
 import { useWindowStore } from './stores/windowStore'
-
-// 检测是否是超级面板模式（通过 hash 路由区分）
-const isSuperPanel = window.location.hash === '#/super-panel'
 
 // FileItem 接口（从剪贴板管理器返回的格式）
 interface FileItem {

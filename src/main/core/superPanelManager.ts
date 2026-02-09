@@ -310,13 +310,11 @@ class SuperPanelManager {
       this.applyMaterialToWindow(win)
     }
 
-    // 加载超级面板页面（通过 hash 区分）
+    // 加载超级面板页面（使用独立的 HTML 入口）
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-      win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/super-panel`)
+      win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/super-panel.html`)
     } else {
-      win.loadFile(path.join(__dirname, '../renderer/index.html'), {
-        hash: '/super-panel'
-      })
+      win.loadFile(path.join(__dirname, '../renderer/super-panel.html'))
     }
 
     // 窗口加载完成后显示
