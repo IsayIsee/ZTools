@@ -78,6 +78,11 @@ class PluginManager {
       console.error('查询插件信息失败:', error)
     }
 
+    // 如果当前插件就是这个插件，直接返回
+    if (this.currentPluginPath === pluginPath) {
+      return
+    }
+
     if (this.currentPluginPath != null) {
       this.hidePluginView()
     }
