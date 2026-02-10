@@ -61,6 +61,7 @@ export async function scanApplications(): Promise<Command[]> {
     const searchPaths = [
       '/Applications',
       '/System/Applications',
+      '/System/Applications/Utilities/',
       `${process.env.HOME}/Applications`
     ]
 
