@@ -168,6 +168,10 @@ declare global {
           success: boolean
           error?: string
         }>
+        updaterSetAutoCheck: (enabled: boolean) => Promise<{
+          success: boolean
+          error?: string
+        }>
 
         // 指令管理
         getCommands: () => Promise<{

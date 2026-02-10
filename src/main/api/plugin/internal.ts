@@ -513,6 +513,14 @@ export class InternalPluginAPI {
       return await (updaterAPI as any).startUpdate(updateInfo)
     })
 
+    ipcMain.handle('internal:updater-set-auto-check', async (event, enabled: boolean) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:updater-set-auto-check')
+      }
+      ;(updaterAPI as any).setAutoCheck(enabled)
+      return { success: true }
+    })
+
     // ==================== 其他 API ====================
     ipcMain.handle('internal:reveal-in-finder', async (event, path: string) => {
       if (!requireInternalPlugin(this.pluginManager, event)) {

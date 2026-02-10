@@ -499,10 +499,24 @@
       </div>
     </div>
 
+    <!-- 自动检查更新 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <span>自动检查更新</span>
+        <span class="setting-desc">开启后将定期检查软件更新</span>
+      </div>
+      <div class="setting-control">
+        <label class="toggle">
+          <input v-model="autoCheckUpdate" type="checkbox" @change="handleAutoCheckUpdateChange" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
     <!-- 软件更新 -->
     <div class="setting-item">
       <div class="setting-label">
-        <span>软件更新</span>
+        <span>软件信息</span>
         <div class="version-info">
           <div>当前版本: {{ appVersion }}</div>
           <div class="versions-detail">
@@ -1399,6 +1413,9 @@ function rgbToHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')
 }
 
+// 自动检查更新
+const autoCheckUpdate = ref(true)
+
 // ==================== 数据持久化 ====================
 
 // 加载设置
@@ -1425,6 +1442,7 @@ async function loadSettings(): Promise<void> {
       theme.value = data.theme ?? 'system'
       primaryColor.value = data.primaryColor ?? 'blue'
       searchMode.value = data.searchMode ?? 'aggregate'
+      autoCheckUpdate.value = data.autoCheckUpdate ?? true
       // 超级面板配置
       superPanelEnabled.value = data.superPanelEnabled ?? false
       superPanelMouseButton.value = data.superPanelMouseButton ?? 'middle'
@@ -1497,10 +1515,23 @@ async function saveSettings(): Promise<void> {
       acrylicLightOpacity: acrylicLightOpacity.value,
       acrylicDarkOpacity: acrylicDarkOpacity.value,
       proxyEnabled: proxyEnabled.value,
-      proxyUrl: proxyUrl.value
+      proxyUrl: proxyUrl.value,
+      autoCheckUpdate: autoCheckUpdate.value
     })
   } catch (error) {
     console.error('保存设置失败:', error)
+  }
+}
+
+// 处理自动检查更新设置变化
+async function handleAutoCheckUpdateChange(): Promise<void> {
+  try {
+    await saveSettings()
+    // 通知主进程更新
+    await window.ztools.internal.updaterSetAutoCheck(autoCheckUpdate.value)
+    console.log('自动检查更新设置已更新:', autoCheckUpdate.value)
+  } catch (error) {
+    console.error('更新自动检查更新设置失败:', error)
   }
 }
 
@@ -1598,6 +1629,10 @@ onMounted(() => {
 }
 
 /* 颜色选择器 */
+/* 组合控件（如：开关+按钮） */
+.combined-control {
+  gap: 16px;
+}
 .color-control {
   display: flex;
   gap: 12px;

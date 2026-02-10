@@ -548,6 +548,8 @@ window.ztools = {
       await electron.ipcRenderer.invoke('internal:updater-check-update'),
     updaterStartUpdate: async (updateInfo) =>
       await electron.ipcRenderer.invoke('internal:updater-start-update', updateInfo),
+    updaterSetAutoCheck: async (enabled) =>
+      await electron.ipcRenderer.invoke('internal:updater-set-auto-check', enabled),
 
     // ==================== WebDAV 同步 API ====================
     syncTestConnection: async (config) =>

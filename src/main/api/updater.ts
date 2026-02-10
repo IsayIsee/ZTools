@@ -60,12 +60,53 @@ export class UpdaterAPI {
   /**
    * 启动自动检查（30分钟一次）
    */
-  private startAutoCheck(): void {
-    // 应用启动后立即进行首次检查
-    this.autoCheckAndDownload()
+  private async startAutoCheck(): Promise<void> {
+    try {
+      // 获取设置
+      const settings = await databaseAPI.dbGet('settings-general')
+      const autoCheck = settings?.autoCheckUpdate ?? true // 默认开启
 
-    // 每30分钟检查一次
-    this.checkTimer = setInterval(() => this.autoCheckAndDownload(), 30 * 60 * 1000)
+      if (!autoCheck) {
+        console.log('自动检查更新已禁用')
+        return
+      }
+
+      // 应用启动后立即进行首次检查
+      this.autoCheckAndDownload()
+
+      // 清除旧定时器
+      this.cleanup()
+
+      // 每30分钟检查一次
+      this.checkTimer = setInterval(() => this.autoCheckAndDownload(), 30 * 60 * 1000)
+    } catch (error) {
+      console.error('启动自动检查更新失败:', error)
+      // 出错时默认启动
+      this.autoCheckAndDownload()
+      this.checkTimer = setInterval(() => this.autoCheckAndDownload(), 30 * 60 * 1000)
+    }
+  }
+
+  /**
+   * 停止自动检查
+   */
+  private stopAutoCheck(): void {
+    if (this.checkTimer) {
+      clearInterval(this.checkTimer)
+      this.checkTimer = null
+      console.log('自动检查更新已停止')
+    }
+  }
+
+  /**
+   * 设置是否自动检查
+   */
+  public setAutoCheck(enabled: boolean): void {
+    if (enabled) {
+      this.startAutoCheck()
+    } else {
+      this.stopAutoCheck()
+    }
   }
 
   /**
@@ -111,7 +152,7 @@ export class UpdaterAPI {
         } else {
           console.error('更新下载失败:', downloadResult.error)
           this.mainWindow?.webContents.send('update-download-failed', {
-            error: downloadResult.error
+            error: downloadResult.error instanceof Error ? downloadResult.error.message : '下载失败'
           })
         }
       }
