@@ -1,10 +1,13 @@
-import { ipcMain, app, BrowserWindow } from 'electron'
+import { ipcMain, app, BrowserWindow, screen } from 'electron'
+import { is } from '@electron-toolkit/utils'
 import { promises as fs } from 'fs'
 import path from 'path'
 import AdmZip from 'adm-zip'
 import { downloadFile } from '../utils/download.js'
 import { spawn } from 'child_process'
 import yaml from 'yaml'
+import databaseAPI from './shared/database.js'
+import { applyWindowMaterial, getDefaultWindowMaterial } from '../utils/windowUtils.js'
 
 /**
  * 更新路径配置
@@ -27,6 +30,7 @@ export class UpdaterAPI {
   private checkTimer: NodeJS.Timeout | null = null
   private downloadedUpdateInfo: any = null
   private downloadedUpdatePath: string | null = null
+  private updateWindow: BrowserWindow | null = null
 
   public init(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow
@@ -39,6 +43,18 @@ export class UpdaterAPI {
     ipcMain.handle('updater:start-update', (_event, updateInfo) => this.startUpdate(updateInfo))
     ipcMain.handle('updater:install-downloaded-update', () => this.installDownloadedUpdate())
     ipcMain.handle('updater:get-download-status', () => this.getDownloadStatus())
+
+    // Update Window IPC
+    ipcMain.on('updater:quit-and-install', () => this.installDownloadedUpdate())
+    ipcMain.on('updater:close-window', () => this.closeUpdateWindow())
+    ipcMain.on('updater:window-ready', () => {
+      if (this.updateWindow && this.downloadedUpdateInfo) {
+        this.updateWindow.webContents.send('update-info', {
+          version: this.downloadedUpdateInfo.version,
+          changelog: this.downloadedUpdateInfo.changelog
+        })
+      }
+    })
   }
 
   /**
@@ -89,6 +105,9 @@ export class UpdaterAPI {
           })
 
           console.log('更新下载完成，等待用户安装')
+
+          // 弹出更新窗口
+          this.createUpdateWindow()
         } else {
           console.error('更新下载失败:', downloadResult.error)
           this.mainWindow?.webContents.send('update-download-failed', {
@@ -407,6 +426,100 @@ export class UpdaterAPI {
     } catch (error: unknown) {
       console.error('更新流程失败:', error)
       return { success: false, error: error instanceof Error ? error.message : '未知错误' }
+    }
+  }
+
+  /**
+   * 应用窗口材质到 Update 窗口
+   */
+  private async applyMaterialToUpdateWindow(win: BrowserWindow): Promise<void> {
+    try {
+      const settings = await databaseAPI.dbGet('settings-general')
+      const material = settings?.windowMaterial || getDefaultWindowMaterial()
+      applyWindowMaterial(win, material)
+    } catch (error) {
+      console.error('[Updater] 应用窗口材质失败:', error)
+    }
+  }
+
+  /**
+   * 创建更新窗口
+   */
+  private createUpdateWindow(): void {
+    if (this.updateWindow && !this.updateWindow.isDestroyed()) {
+      this.updateWindow.show()
+      this.updateWindow.focus()
+      return
+    }
+
+    const width = 500
+    const height = 450
+
+    // 计算窗口位置（居中）
+    const primaryDisplay = screen.getPrimaryDisplay()
+    const { workArea } = primaryDisplay
+    const x = Math.round(workArea.x + (workArea.width - width) / 2)
+    const y = Math.round(workArea.y + (workArea.height - height) / 2)
+    
+    const windowConfig: Electron.BrowserWindowConstructorOptions = {
+      width,
+      height,
+      x,
+      y,
+      frame: false,
+      resizable: false,
+      maximizable: false,
+      minimizable: false,
+      alwaysOnTop: true,
+      hasShadow: true,
+      type: 'panel', // 尝试使用 panel 类型，类似 SuperPanel
+      webPreferences: {
+        preload: path.join(__dirname, '../preload/index.js'),
+        sandbox: false,
+        contextIsolation: true,
+        nodeIntegration: false
+      }
+    }
+
+    // macOS 系统配置
+    if (process.platform === 'darwin') {
+      windowConfig.transparent = true
+      windowConfig.vibrancy = 'fullscreen-ui'
+    }
+    // Windows 系统配置（不设置 transparent，让 setBackgroundMaterial 生效）
+    else if (process.platform === 'win32') {
+      windowConfig.backgroundColor = '#00000000'
+    }
+
+    this.updateWindow = new BrowserWindow(windowConfig)
+
+    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+      this.updateWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/updater.html`)
+    } else {
+      this.updateWindow.loadFile(path.join(__dirname, '../renderer/updater.html'))
+    }
+
+    // 应用材质 (仅 Windows)
+    if (process.platform === 'win32') {
+      this.applyMaterialToUpdateWindow(this.updateWindow)
+    }
+
+    this.updateWindow.once('ready-to-show', () => {
+      this.updateWindow?.show()
+    })
+
+    this.updateWindow.on('closed', () => {
+      this.updateWindow = null
+    })
+  }
+
+
+  /**
+   * 关闭更新窗口
+   */
+  private closeUpdateWindow(): void {
+    if (this.updateWindow && !this.updateWindow.isDestroyed()) {
+      this.updateWindow.close()
     }
   }
 
